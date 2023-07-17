@@ -4,12 +4,14 @@
 #requirements: pip install opencv-python
 #does not seem to function properly on MacOS (tested with 2021 M1 MBA running MacOS 12)
 #does work on Windows 10 (tested 2015 MBP running BootCamp)
-#to run: chickenMap.py in cmd
+#to run: type chickenMap.py in cmd
 
 #TODO:
 #1) change coordinate system to AxB grid instead of video resolution (need more info from E+G)
 #2) ensure file type compatibility between openCV and chicken videos (.mp4?)
 #3) Clear coordinate by clicking near it (x, y +/- a? text size?)
+#4) Draw rectangles for annotating (can openCV distinguish between mouse click and drag?)
+#4a) If frame is annotated, probably important, so save frame with annotation to disk?
 
 import cv2
 
