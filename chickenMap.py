@@ -1,10 +1,9 @@
-#Author: Logan Orians
-#Date: 07/13/23
+# Author: Logan Orians
+# Date: 07/13/23
 
-#requirements: pip install opencv-python
-#does not seem to function properly on MacOS (tested with 2021 M1 MBA running MacOS 12)
-#does work on Windows 10 (tested 2015 MBP running BootCamp)
-#to run: type chickenMap.py in cmd
+# requirements: pip install opencv-python
+# MacOS (tested with 2020 M1 MBA running MacOS 12): in Terminal, type python3 chickenMap.py (type "python3 c" and press tab to autofill)
+# Windows 10 (tested with 2015 MBP running BootCamp): type chickenMap.py in cmd
 
 #TODO:
 #1) change coordinate system to AxB grid instead of video resolution (need more info from E+G)
@@ -12,10 +11,15 @@
 #3) Clear coordinate by clicking near it (x, y +/- a? text size?)
 #4) Draw rectangles for annotating (can openCV distinguish between mouse click and drag?)
 #4a) If frame is annotated, probably important, so save frame with annotation to disk?
+#5) Update instructions (navigating to path)
+
 
 import cv2
 
-coordsList = [] #"global" list of x,y,coordinate tuples
+
+# "Global" variables
+coordsList = [] #list of x,y,coordinate tuples
+
 
 #openCV function for mouse input
 def mouse_callback(event, x, y, flags, param):
@@ -24,16 +28,20 @@ def mouse_callback(event, x, y, flags, param):
         coordsList.append((x, y, coords)) #append tuple to list
     return
 
+
 def main():
-    infilepath = input('Copy and paste the file path (drag the video from File Explorer into here): ')
+    inString = 'Copy and paste the file path (drag the video from File Explorer here) and press Enter: '
+    infilepath = input(inString).strip() #strip trailing space for MacOS compatibility
 
     video = cv2.VideoCapture(infilepath) #create VideoCapture object
 
     fps = video.get(cv2.CAP_PROP_FPS) #get fps of video input
+    if fps == 0:
+        fps = 30
     delay = int(1000 / fps) #calculate delay from fps, in ms
 
     exitKey = 'q' #key to press to exit video program
-    clearLey = 'c' #key to clear previous coordinate on screen
+    clearKey = 'c' #key to clear previous coordinate on screen
     
     cv2.namedWindow('Video') #create named window to display video
     cv2.setMouseCallback("Video", mouse_callback) #mouse callback function
@@ -51,7 +59,7 @@ def main():
                 break
 
             #clear previous coordinate
-            elif len(coordsList) > 0 and keyPress == ord('c'):
+            elif len(coordsList) > 0 and keyPress == ord(clearKey):
                 coordsList.pop()
 
         else:
@@ -59,6 +67,9 @@ def main():
 
     video.release() #release VC object
     cv2.destroyAllWindows() #close video frames
+
+    return
+
 
 if __name__ == "__main__":
     main()
