@@ -82,5 +82,5 @@ For support, email logan.orians@gmail.com.
 
 ## License
 
-[GPLv3.0](https://choosealicense.com/licenses/gpl-3.0/)
+[GPLv3.0](https://github.com/lorians22/ChickenMap/blob/main/COPYING)
 
