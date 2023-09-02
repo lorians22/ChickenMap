@@ -24,17 +24,17 @@ After installation, verify that pip is installed in a command prompt/Terminal:
 ```
 ## Installation
 
-Download a [zip](https://github.com/lorians22/ChickenMap/archive/refs/heads/main.zip) of the code, then extract to a folder on the Desktop. Open a command prompt/Terminal, navigate to the folder, and install the requirements:
+Download a [zip](https://github.com/lorians22/ChickenMap/archive/refs/heads/main.zip) of the code, then extract. Open a command prompt/Terminal, navigate to the folder, and install the requirements:
 
 ### Windows
 ```bash
-  cd %USERPROFILE%\Desktop\ChickenMap-main
+  cd %USERPROFILE%\Downloads\ChickenMap-main
   pip install -r requirements.txt
 ```
 
 ### MacOS
 ```bash
-  cd ~/Desktop/ChickenMap-main
+  cd ~/Downloads/ChickenMap-main
   pip install -r requirements.txt
 ```
     
@@ -45,7 +45,7 @@ Download a [zip](https://github.com/lorians22/ChickenMap/archive/refs/heads/main
 In a command prompt:
 
 ```bash
-cd %USERPROFILE%\Desktop\ChickenMap-main
+cd %USERPROFILE%\Downloads\ChickenMap-main
 python chickenMap.py
 (drag video file to command prompt window, press enter)
 ```
@@ -56,7 +56,7 @@ Click in the video window to produce a coordinate.
 In a Terminal:
 
 ```bash
-cd ~/Desktop/ChickenMap-main
+cd ~/Downloads/ChickenMap-main
 python chickenMap.py
 (drag video file to Terminal window, press enter)
 ```
@@ -75,9 +75,12 @@ chickenStockVideo.mp4
 Tested with:
 - 2015 Intel MacBook Pro running MacOS 12.6.3 and Windows 10 via Boot Camp
 - 2020 M1 MacBook Air running MacOS 13
+- AM4 PC running Windows 10 22H2 (build 19045)
+
+
 ## Support
 
-For support, email logan.orians@gmail.com.
+For support, email logan.orians@gmail.com or message me on [Discord](https://discord.com/channels/@me/l_orians) @l_orians.
 
 
 ## License
