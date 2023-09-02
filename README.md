@@ -77,7 +77,7 @@ Tested with:
 - 2020 M1 MacBook Air running MacOS 13
 ## Support
 
-For support, [email(mailto:logan.orians@gmail.com) me at logan.orians@gmail.com or message me on [Discord](https://discord.com/users/l_orians).
+For support, [email](mailto:logan.orians@gmail.com) me at logan.orians@gmail.com or message me on [Discord](https://discord.com/users/l_orians).
 
 
 ## License
