@@ -80,7 +80,7 @@ Tested with:
 
 ## Support
 
-For support, email logan.orians@gmail.com or message me on [Discord](https://discord.com/channels/@me/l_orians) @l_orians.
+For support, [email](mailto:logan.orians@gmail.com) me or message me on [Discord](https://discord.com/users/l_orians).
 
 
 ## License
