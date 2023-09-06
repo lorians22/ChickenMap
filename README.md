@@ -73,9 +73,9 @@ chickenStockVideo.mp4
 ## Compatibility
 
 Tested with:
-- 2015 Intel MacBook Pro running MacOS 12.6.3 and Windows 10 via Boot Camp
+- 2015 Intel MacBook Pro running MacOS 12.6.3/Windows 10 via Boot Camp
 - 2020 M1 MacBook Air running MacOS 13
-- AM4 PC running Windows 10 22H2 (build 19045)
+- AM4 PC running Windows 10 22H2/MacOS 13 via OpenCore
 
 
 ## Support
