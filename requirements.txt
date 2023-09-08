@@ -1,4 +1,5 @@
 # pip install -r requirements.txt
 
-#not tested with older versions of openCV!
+#not tested with older versions, but will probably still work
 opencv-python>=4.8.0.74
+numpy>=1.25.2
