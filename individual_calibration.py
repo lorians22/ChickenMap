@@ -73,14 +73,12 @@ def sanity_check(filepath, filetype, camMatrix, distCoeffs):
 def write_results(filepath, camMatrix, distCoeffs):
 	# Setup output file
 	path = pathlib.PurePath(filepath)
-	outFile = path.name+'.txt' #set output file name
-	FILE = open(outFile, 'w') #clear file
-	FILE = open(outFile, 'a') #open file for appending
+	outFileMtx = path.name+'_camMatrix'
+	outFileDst = path.name+'_distCoeffs'
 
-	camMatrix.tofile(FILE, sep=' ') #write camera matrix to file
-	FILE.write('\n') #separate by newline for importing later with readline()
-	distCoeffs.tofile(FILE, sep=' ') #write distortion coefficients to file
-	FILE.close() #close file
+	#write to .npy for easier import
+	np.save(outFileMtx, camMatrix)
+	np.save(outFileDst, distCoeffs)
 
 if __name__ == '__main__':
 	filepath = sys.argv[1] #path to images you want to use for calibration
