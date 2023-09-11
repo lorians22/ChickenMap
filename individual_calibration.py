@@ -73,8 +73,8 @@ def sanity_check(filepath, filetype, camMatrix, distCoeffs):
 def write_results(filepath, camMatrix, distCoeffs):
 	# Setup output file
 	path = pathlib.PurePath(filepath)
-	outFileMtx = path.name+'_camMatrix'
-	outFileDst = path.name+'_distCoeffs'
+	outFileMtx = 'outputs/'+path.name+'_camMatrix'
+	outFileDst = 'outputs/'+path.name+'_distCoeffs'
 
 	#write to .npy for easier import
 	np.save(outFileMtx, camMatrix)
