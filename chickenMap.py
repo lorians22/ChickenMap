@@ -2,14 +2,15 @@
 # Date: 07/13/23
 
 # requirements: pip install -r requirements.txt
-# python chickenMap.py <path_to_video>          You can drag a video file from Explorer/Finder into this window and press Enter
-# ex. python chickenMap.py test.mp4
+# py chickenMap.py <path_to_video>          You can drag a video file from Explorer/Finder into this window and press Enter.
+# ex. py chickenMap.py test.mp4
 
-# Notes: It's probably bad practice to have a 'time' variable when I'm importing the time package. But it works, so I don't mind.
-
+# Notes: It's probably bad practice to have a 'time' variable when I'm importing the time package. But it works, so I don't care.
 
 # TODO:
 # show coordinate on screen for ~5 seconds
+# implement argparse
+
 
 import sys
 import os
@@ -19,6 +20,7 @@ import platform
 import time
 from datetime import datetime
 import openpyxl
+#import argparse
 #import re
 
 
