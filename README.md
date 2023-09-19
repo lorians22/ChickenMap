@@ -22,6 +22,9 @@ After installation, verify that pip is installed in a command prompt/Terminal:
 ```bash
   pip --version
 ```
+
+Tesseract 5.x. (tested with 5.3.1). Download the latest [here for Windows](https://digi.bib.uni-mannheim.de/tesseract/tesseract-ocr-w64-setup-5.3.1.20230401.exe) and install.
+
 ## Installation
 
 Download a [zip](https://github.com/lorians22/ChickenMap/archive/refs/heads/main.zip) of the code, then extract to a folder on the Desktop. Open a command prompt/Terminal, navigate to the folder, and install the requirements:
@@ -69,6 +72,11 @@ Click in the video window to produce a coordinate.
 python chickenMap.py
 chickenStockVideo.mp4
 ```
+
+Left-click anywhere to produce a coordinate at your cursor. Right-click to annotate at your cursor: Go back to the Command Prompt/Terminal window, type your annotation, and hit enter, then click the Python/video window to go back to the chicken video.
+Press 'q' to quit the program. Press clear to remove the current on-screen coordinate from the screen and from the output file.
+Coordinates are saved along with their video timestamps in an Excel file in the output/ directory.
+Annotated images are saved in the annotated_images/ directory.
 
 ## Compatibility
 
