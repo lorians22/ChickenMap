@@ -14,7 +14,8 @@ To open a Terminal, press Cmd + space, type *terminal*, and press return/enter.
 
 ## Prerequisites
 
-* Python 3.x (tested with 3.8, 3.11). Download the latest [here](https://www.python.org/downloads/). When installing, make sure to check the *Add python.exe to PATH* box, then click *Install Now*.  ![](C:\Users\st33l\ChickenMap\pythonPath.png)After installation, verify that Python and pip are installed in a command prompt/Terminal. If both respond with a version number, you're good to go:
+* Python 3.x (tested with 3.8, 3.11). Download the latest [here](https://www.python.org/downloads/). When installing, make sure to check the *Add python.exe to PATH* box, then click *Install Now*.  ![pythonPath](https://github.com/lorians22/ChickenMap/assets/54642144/0be6ea57-0522-4ae4-8e2f-a144ce1530d1)
+After installation, verify that Python and pip are installed in a command prompt/Terminal. If both respond with a version number, you're good to go:
   
   ```bash
   py --version
