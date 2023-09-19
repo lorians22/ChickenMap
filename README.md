@@ -14,6 +14,7 @@ To open a Terminal, press Cmd + space, type *terminal*, and press return/enter. 
 
 ## Prerequisites
 
+<<<<<<< HEAD
 ### Windows
 
 Tesseract 5.x. (tested with 5.3.1). Download the latest [here for Windows](https://digi.bib.uni-mannheim.de/tesseract/tesseract-ocr-w64-setup-5.3.1.20230401.exe) and install.
@@ -39,6 +40,7 @@ Python 3.x (tested with 3.8, 3.11). Download the latest for your system [here](h
 * At the end, you have the option to *Disable path length limit*. While not necessary for this program, it's a good idea to click that option.
 
 * After installation, verify that Python and pip are installed in a command prompt/Terminal:
+>>>>>>> a3f287609eaccdf252e5a488d435f307877b024c
   
   ```bash
   py --version
