@@ -92,7 +92,7 @@ cd %USERPROFILE%\Downloads\ChickenMap-main\ChickenMap-main
 py chickenMap.py <path_to_video>
 ```
 
-<path_to_video> should not be typed out; it should be the filename of the video you want to play. You can drag a video file from File Explorer into the command prompt window and press enter to run the program. Just make sure to add a space after `py chickenMap.py` before dragging a video file into the window.
+`<path_to_video>` should not be typed out; it should be the filename of the video you want to play. You can drag a video file from File Explorer into the command prompt window and press enter to run the program. Just make sure to add a space after `py chickenMap.py` before dragging a video file into the window.
 
 ### MacOS
 
@@ -104,7 +104,7 @@ python chickenMap.py
 (drag video file to Terminal window, press enter)
 ```
 
-<path_to_video> should not be typed out; it should be the filename of the video you want to play. You can drag a video file from Finder into the Terminal window and press enter to run the program. Just make sure to add a space after `python chickenMap.py` before dragging a video file into the window.
+`<path_to_video>` should not be typed out; it should be the filename of the video you want to play. You can drag a video file from Finder into the Terminal window and press enter to run the program. Just make sure to add a space after `python chickenMap.py` before dragging a video file into the window.
 
 ### Example
 
