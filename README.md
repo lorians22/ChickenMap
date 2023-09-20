@@ -81,7 +81,7 @@ Download a [zip](https://github.com/lorians22/ChickenMap/archive/refs/heads/main
   
   * The video will freeze/pause. Go back to the Command Prompt/Terminal window, type your annotation, and hit enter. The annotation will not appear on screen. The video will resume. To return to the chicken video, click the Python/video window border or taskbar icon to go back to the chicken video. It is important to click on the window border or taskbar icon, as clicking inside the video will produce a coordinate. If you accidentally click the screen and a coordinate appears, press 'c' to clear the coordinate.
   
-  * Annotated images are saved in the `annotated_images/` directory. You can find these .jpg files in the `ChickenMap-main/` folder.
+  * Annotated images are saved in the `annotated_images/` directory. You can find these .jpg files in the `ChickenMap-main/` folder. Filenames are based on the timestamp in the top-left corner of the video; annotations at the same timestamp are given a `_#` suffix to prevent overwriting.
 
 ### Windows
 
