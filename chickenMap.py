@@ -1,185 +1,259 @@
-# Author: Logan Orians
+"""A coordinate mapping program made initially for chicken research"""
+
 # Date: 07/13/23
 
 # requirements: pip install -r requirements.txt
-# py chickenMap.py <path_to_video>          You can drag a video file from Explorer/Finder into this window and press Enter.
+# py chickenMap.py <path_to_video>
+#         ^You can drag a video file from Explorer/Finder into this window and press Enter.
 # ex. py chickenMap.py test.mp4
 
 # TODO:
-# show coordinate on screen for ~5 seconds
-# implement argparse
+# 1) argparse output file option: allow custom output file, but use get_next_filename() to prevent o/w
+#   - prevent output_dir and anno_dir from being the same name
+#   - input validation
+#   - pip install pathvalidate
+# 2) convert string concats to join() for efficiency
+# 3) convert globals to class(es): Font, Dir, MouseCallbackHandler
+# 4) draw annotation on video instead of flipping back to cmd
+# 5) Resize OpenCV window
 
 
-import sys
+__version__ = '2023.9.2'
+__author__ = 'Logan Orians'
+
+
+import argparse
 import os
-import cv2
-import pytesseract
-import platform
 import time
-from datetime import datetime
-import openpyxl
-#import argparse
+import platform
+import pytesseract #Tesseract-OCR wrapper
+import cv2
+import openpyxl #Excel engine
 #import re
-
-
-#point pytesseract to tesseract executable
-if platform.system() == 'Windows':
-    pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 
 
 # Global variables
 frame = None #get_timestamp() needs video frame when mouse is clicked
 coords = () #need to get coords from mouse_callback, but mouse_callback doesn't "return"
-outfilepath = ''
-annoDir = ''
-coordStartTime = 0
+outfile_path = ''
+anno_dir = ''
+coord_start_time = 0
+font = None
+font_color = None
+font_scale = None
+font_thickness = None
 
 
-# Runs when mouse input is received on the video window. Gets coordinate from mouse input and video timestamp via OCR
-def mouse_callback(event, x, y, flags, param):
+def mouse_callback(event, x, y, *_):
+    """
+    Runs when mouse input is received on the video window. Gets coordinate from mouse input and
+    video timestamp via OCR
+    """
+
     global coords
-    global coordStartTime
+    global coord_start_time
 
     if event == cv2.EVENT_LBUTTONDOWN: #left mouse click
-        coordStartTime = time.time()
+        coord_start_time = time.time()
         coords = (x, y)
-        tsDate, tsTime = get_timestamp()
-        write_excel_file(tsDate, tsTime, x, y)
+        timestamp_date, timestamp_time = get_timestamp()
+        data = [timestamp_date, timestamp_time, f'({x}, {y})'] #use f-string to format coordinate
+        wb = openpyxl.load_workbook(outfile_path) #open existing workbook
+        wb.active.append(data) #append data to sheet
+        wb.save(outfile_path) #save workbook
+        wb.close() #close file
 
         #Print timestamp and coordinates in case .xlsx gets corrupted
-        print(tsDate) 
-        print(tsTime)
-        print(str(coords))
-        print() #print newline to separate
+        print(timestamp_date)
+        print(timestamp_time)
+        print(str(coords)+'\n')
 
 
     elif event == cv2.EVENT_RBUTTONDOWN: #right mouse click
-        _, tsTime = get_timestamp()
+        _, timestamp_time = get_timestamp()
         annotation = input('Enter annotation: ')
-        cv2.putText(frame, annotation, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 2)
-        filename = annoDir+tsTime.replace(':', '-')+'.jpg'
-        annofilename = get_next_filename(filename) #makes sure not to overwrite image
-        cv2.imwrite(annofilename, frame)
-
-    return
+        cv2.putText(frame, annotation, (x, y), font, font_scale, font_color, font_thickness)
+        filename = anno_dir+timestamp_time.replace(':', '-')+'.jpg'
+        anno_filename = get_next_filename(filename) #makes sure not to overwrite image
+        cv2.imwrite(anno_filename, frame)
 
 
-# Gets next available filename (to avoid overwriting image at same timestamp with multiple views of same video)
 def get_next_filename(filename):
-    newFile = filename
+    """Gets next available filename (to avoid overwriting image at same timestamp).
+
+    Args:
+        filename (str): the proposed filename
+
+    Returns:
+        new_file (str): a filename that will not overwrite an existing file
+    """
+
+    new_file = filename
     root, ext = os.path.splitext(filename)
     count = 0
-    while os.path.exists(newFile):
+    while os.path.exists(new_file):
         count += 1
-        newFile = '{}_{}{}'.format(root, count, ext)
+        new_file = '{}_{}{}'.format(root, count, ext)
 
-    return newFile
+    return new_file
 
 
-# Gets burnt-in timestamp via OCR (not video timestamp from OpenCV)
 def get_timestamp():
-    tsArea = frame[30:100, 26:634] #bounding box of timestamp in pixels, [y:y+h, x:x+w]
-    tsGray = cv2.cvtColor(tsArea, cv2.COLOR_BGR2GRAY) #convert timestampArea to grayscale
-    _, tsThresh = cv2.threshold(tsGray, 187, 255, cv2.THRESH_BINARY) #binary threshold for better recognition
-    #cv2.imshow('thresh', tsThresh)
-    timestamp = pytesseract.image_to_string(tsThresh, config='--psm 7') #convert text in image to string
-    tsDate, tsTime = timestamp.strip().split(' ')
+    """Gets burnt-in timestamp via OCR (not video timestamp from OpenCV)"""
+
+    timestamp_area = frame[30:100, 26:634] #bounding box of timestamp in pixels, [y:y+h, x:x+w]
+    timestamp_gray = cv2.cvtColor(timestamp_area, cv2.COLOR_BGR2GRAY) #convert to grayscale
+    #binary threshold for better recognition
+    _, timestamp_thresh = cv2.threshold(timestamp_gray, 187, 255, cv2.THRESH_BINARY)
+    #cv2.imshow('thresh', timestamp_thresh)
+    #convert text in image to string
+    timestamp = pytesseract.image_to_string(timestamp_thresh, config='--psm 7')
+    timestamp_date, timestamp_time = timestamp.strip().split(' ') #remove space, split after date
 
     # regex in case it messes up. but it seems to be okay without it
     #rePattern = r'(\d{2}/\d{2}/\d{4}) (\d{2}:\d{2}:\d{2})' #regex group pattern
     #patternMatch = re.search(rePattern, timestamp)
-    #tsDate = patternMatch.group(0)
-    #tsTime = patternMatch.group(1)
+    #timestamp_date = patternMatch.group(0)
+    #timestamp_time = patternMatch.group(1)
 
-    return tsDate, tsTime
+    return timestamp_date, timestamp_time
 
 
-# Sets up Excel file and adds bolded headers
-def setup_excel_file():
-    headers = ['Date', 'Time', 'Coordinates']
+def get_set_proper_dir(argument):
+    """Makes sure input argument is a directory
+    
+    Args:
+        argument (str): the input argument directory
+
+    Returns:
+        argument (str): the corrected directory
+    """
+
+    if not argument.endswith('/') and not argument.endswith('\\'):
+        argument += '/'
+    if not os.path.exists(argument):
+        os.makedirs(argument)
+
+    return argument
+
+
+def delete_last_coordinate(outfile_path):
+    """Deletes most recent coordinate from Excel sheet
+        
+    Args:
+        outfile_path (str): the filepath to the Excel sheet
+    """
+
+    wb = openpyxl.load_workbook(outfile_path)
+    ws = wb.active
+    last_row = ws.max_row
+    ws.delete_rows(last_row)
+    wb.save(outfile_path)
+    wb.close()
+
+
+def setup_spreadsheet(outfile_path, headers):
     wb = openpyxl.workbook.Workbook()
     ws = wb.active
     ws.append(headers)
     for cell in ws['1:1']:
         cell.font = openpyxl.styles.Font(bold=True) #make headers bold
-    wb.save(outfilepath)
+    wb.save(outfile_path)
     wb.close()
 
-    return
 
+def arg_parsing():
+    """Parses input arguments. Function encapsulates it from main"""
 
-# Writes timestamp and coordinates to .xlsx
-def write_excel_file(tsDate, tsTime, x, y):
-    data = [tsDate, tsTime, f'({x}, {y})'] #use f-string to format coordinate
-    wb = openpyxl.load_workbook(outfilepath) #open existing workbook
-    wb.active.append(data) #append data to sheet
-    wb.save(outfilepath) #save workbook
-    wb.close() #close file
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description='A coordinate displaying and writing program to track chicken behavior.')
+    parser.add_argument('video_path', help='File path to the video')
+    parser.add_argument('-od', '--output_dir', metavar='',
+        help='Name of output folder for Excel files', default='sheets/')
+    parser.add_argument('-ad', '--anno_dir', metavar='',
+        help='Name of output folder for annotated images', default='annotated_images/')
+    parser.add_argument('-e', '--exit_key', metavar='', help='Key to quit program', default='q')
+    parser.add_argument('-c', '--clear_key', metavar='',
+        help='Key to remove coordinate from screen and Excel file', default='c')
+    parser.add_argument('-d', '--coord_dur', metavar='',
+        type=int, help='Duration of coordinates on screen in seconds', default=5)
+    parser.add_argument('--version', action='version',
+        version='%(prog)s {version}'.format(version=__version__))
+    # Suppressed options: change in options.json
+    parser.add_argument('-f', '--font', help=argparse.SUPPRESS, default=cv2.FONT_HERSHEY_SIMPLEX)
+    parser.add_argument('-fc', '--font_color', help=argparse.SUPPRESS, default=(0, 255, 0))
+    parser.add_argument('-fs', '--font_scale', help=argparse.SUPPRESS, default=1)
+    parser.add_argument('-ft', '--font_thickness', help=argparse.SUPPRESS, default=2)
 
-    return
+    # Set parsed input arguments to program variables
+    args = parser.parse_args()
+    infile_path = args.video_path.strip() #strip trailing space for MacOS compatibility
+    exit_key = args.exit_key
+    clear_key = args.clear_key
+    coord_duration = args.coord_dur #duration of coordinates on screen, in seconds
+    output_dir = get_set_proper_dir(args.output_dir)
+    anno_dir = get_set_proper_dir(args.anno_dir)
+    font = args.font
+    font_color = args.font_color
+    font_scale = args.font_scale
+    font_thickness = args.font_thickness
 
-
-# Clears last coordinate saved to Excel file
-def delete_last_coordinate():
-    wb = openpyxl.load_workbook(outfilepath)
-    ws = wb.active
-    lastRow = ws.max_row
-    ws.delete_rows(lastRow)
-    wb.save(outfilepath)
-    wb.close()
-
-    return
+    return infile_path, exit_key, clear_key, coord_duration, output_dir, anno_dir, font, \
+    font_color, font_scale, font_thickness
 
 
 def main():
     global frame
     global coords
-    global outfilepath
-    global annoDir
+    global outfile_path
+    global anno_dir
+    global font
+    global font_color
+    global font_scale
+    global font_thickness
 
-    exitKey = 'q' #key to press to exit video program
-    clearKey = 'c' #key to clear previous coordinate on screen
 
-    infilepath = sys.argv[1].strip() #strip trailing space for MacOS compatibility
+    #point pytesseract to tesseract executable
+    if platform.system() == 'Windows':
+        pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 
-    # Setup spreadsheet directory and file
-    outputDir = 'sheets/'
-    if not os.path.exists(outputDir):
-        os.makedirs(outputDir)
-    systemDateTime = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) #ISO 8601 system date/time
-    outfilepath = outputDir+systemDateTime+'.xlsx'
-    setup_excel_file() #write headers to sheet
+    infile_path, exit_key, clear_key, coord_duration, output_dir, anno_dir, font, font_color, \
+    font_scale, font_thickness = arg_parsing()
 
-    # Setup annotations directory
-    annoDir = 'annotated_images/'
-    if not os.path.exists(annoDir):
-        os.makedirs(annoDir)
-    
-    cap = cv2.VideoCapture(infilepath) #create Video Capture object
+    # Setup spreadsheet file
+    system_date_time = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) #ISO 8601
+    outfile_path = output_dir+system_date_time+'.xlsx'
+    headers = ['Date', 'Time', 'Coordinates']
+    setup_spreadsheet(outfile_path, headers)
+
+
     # Determine delay to play video at normal speed
+    cap = cv2.VideoCapture(infile_path) #create Video Capture object
     fps = cap.get(cv2.CAP_PROP_FPS) #get fps of cap input
     if fps == 0:
         fps = 25 #set default if determination fails
     delay = int(1000 / fps) #calculate delay from fps, in ms
-    
-    cv2.namedWindow('Video') #create named window to display cap
+
+    cv2.namedWindow('Video', cv2.WINDOW_NORMAL) #create named window to display cap
+    cv2.resizeWindow('Video', 1344, 760)
     cv2.setMouseCallback('Video', mouse_callback) #mouse callback function
 
-    coordDuration = 5 # duration of coordinates on-screen, in seconds
 
-    while (cap.isOpened()):
+    while cap.isOpened():
         ret, frame = cap.read() #get cap frame-by-frame
         if ret:
-            keyPress = cv2.waitKey(delay) & 0xFF #get keyPress
-            if keyPress == ord(exitKey): #quit program
+            key_press = cv2.waitKey(delay) & 0xFF #get key_press
+            if key_press == ord(exit_key): #quit program
                 break
 
             if coords: #only allow deletion of [date, time, coord] when on screen
-                if keyPress == ord(clearKey):
+                if key_press == ord(clear_key):
                     coords = ()
-                    delete_last_coordinate()
-                elif time.time() - coordStartTime < coordDuration: #on-screen coordinate timeout
-                    cv2.putText(frame, str(coords), coords, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                    delete_last_coordinate(outfile_path)
+
+                elif time.time() - coord_start_time < coord_duration: #on-screen coordinate timeout
+                    cv2.putText(frame, str(coords), coords, font, font_scale, font_color,
+                        font_thickness)
 
             cv2.imshow('Video', frame) #show video frame
         else:
@@ -187,8 +261,6 @@ def main():
 
     cap.release() #release video capture object
     cv2.destroyAllWindows() #close all OpenCV windows
-
-    return
 
 
 if __name__ == "__main__":
