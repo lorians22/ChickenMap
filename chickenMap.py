@@ -15,6 +15,9 @@
 # 2) convert string concats to join() where possible for efficiency
 # 3) convert globals to class(es): Font, Dir, MouseCallback
 # 4) draw annotation on video instead of flipping back to cmd
+# 5) add error logger to except (Logger class?)
+#   - add try-except to arg_parsing()
+#   - encase main in try-except?
 
 
 __version__ = '2023.9.2'
@@ -29,8 +32,18 @@ import pytesseract #Tesseract-OCR wrapper
 import cv2
 import openpyxl #Excel engine
 import json
+import logging
 #import re
 #import tkinter as tk
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+file_handler = logging.FileHandler('error_log.txt')
+file_handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
 
 #root = tk.Tk()
 #screen_width = root.winfo_screenwidth()
@@ -152,21 +165,6 @@ def get_set_proper_dir(argument):
     return argument
 
 
-def delete_last_coordinate(outfile_path):
-    """Deletes most recent coordinate from Excel sheet
-        
-    Args:
-        outfile_path (str): the filepath to the Excel sheet
-    """
-
-    wb = openpyxl.load_workbook(outfile_path)
-    ws = wb.active
-    last_row = ws.max_row
-    ws.delete_rows(last_row)
-    wb.save(outfile_path)
-    wb.close()
-
-
 def setup_spreadsheet(outfile_path, headers):
     """Sets up the output spreadsheet by adding bolded headers to columns
 
@@ -180,6 +178,21 @@ def setup_spreadsheet(outfile_path, headers):
     ws.append(headers)
     for cell in ws['1:1']:
         cell.font = openpyxl.styles.Font(bold=True) #make headers bold
+    wb.save(outfile_path)
+    wb.close()
+
+
+def delete_last_coordinate(outfile_path):
+    """Deletes most recent coordinate from Excel sheet
+        
+    Args:
+        outfile_path (str): the filepath to the Excel sheet
+    """
+    
+    wb = openpyxl.load_workbook(outfile_path)
+    ws = wb.active
+    last_row = ws.max_row
+    ws.delete_rows(last_row)
     wb.save(outfile_path)
     wb.close()
 
@@ -214,14 +227,28 @@ def arg_parsing():
     return parser.parse_args()
 
 
-def write_args_to_file(args, filename, info = []):
+def write_args_to_file(args, filename):
     """Saves input arguments to file
 
     Args:
         args (argparse.Namespace): arguments to be written to file
         filename (str): .json file for writing
-        info (list) [optional]: helpful information to append to file
     """
+
+    separation = '*************************************************************\n'
+    info = [
+        '\n\n/*\n', separation, '"font_color" must be of the form [R,G,B], where R,G,B <= 255.\n',
+        'You have 16.7 million options; here is the rainbow:\n', '\tred = [255, 0, 0]\n',
+        '\torange = [255, 165, 0]\n', '\tyellow = [255, 255, 0]\n',
+        '\tgreen (lime) = [0, 255, 0]\n', '\tblue = [0, 0, 255]\n', '\tindigo = [75, 0, 130]\n',
+        '\tviolet = [128, 0, 128]\n', separation, '\n', separation,
+        '"font" must be a number 0-7, or 16; feel free to try them out:\n',
+        '\t0: normal size sans-serif font (default)\n', '\t1: small size sans-serif font\n',
+        '\t2: normal size sans-serif font, complex\n', '\t3: normal size serif font\n',
+        '\t4: normal size serif font, complex\n', '\t5: small size serif font\n',
+        '\t6: hand-writing style font\n', '\t7: hand-writing style font, complex\n',
+        '\t16: italic font\n', separation, '*/\n'
+    ]
 
     with open(filename, 'w') as FILE:
         json.dump(vars(args), FILE, indent=4)
@@ -238,17 +265,15 @@ def get_args_from_file(filename):
         argparse.Namespace: arguments from file
     """
 
-    try:
-        with open(filename, 'r') as FILE:
-            json_data = ''
-            for line in FILE:
-                json_data += line
-                if '}' in line: #end of JSON object
-                    break
-            args_dict = json.loads(json_data)
-        return argparse.Namespace(**args_dict)
-    except FileNotFoundError:
-        return None
+    with open(filename, 'r') as FILE:
+        json_data = ''
+        for line in FILE:
+            json_data += line
+            if '}' in line: #end of JSON object
+                break
+        args_dict = json.loads(json_data)
+
+    return argparse.Namespace(**args_dict)
 
 
 def main():
@@ -262,97 +287,86 @@ def main():
     global font_thickness
 
 
-    #point pytesseract to tesseract executable
-    if platform.system() == 'Windows':
-        pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
+    try:
+        #point pytesseract to tesseract executable
+        if platform.system() == 'Windows':
+            pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 
 
-    # Merge default arguments with input
-    args = arg_parsing() #get arg Namespace object
-    defaults = get_args_from_file('options.json5')
-    for key, val in vars(args).items():
-        if val == None:
-            setattr(args, key, getattr(defaults, key))
+        # Merge default arguments with input, write to file
+        options_file = 'options.json5'
+        args = arg_parsing() #get arg Namespace object
+        defaults = get_args_from_file(options_file)
+        for key, val in vars(args).items():
+            if val == None:
+                setattr(args, key, getattr(defaults, key))
+        write_args_to_file(args, options_file) #write updated args to file
 
 
-    # Update arguments in options.json5 and add the info at the bottom
-    info = [
-        '\n\n/*', '/////////////////////////////////////////////////////////////',
-        '"font_color" must be of the form [R,G,B], where R,G,B <= 255.',
-        'You have 16.7 million options; here is the rainbow:',
-        '\tred = [255, 0, 0]', '\torange = [255, 165, 0]', '\tyellow = [255, 255, 0]',
-        '\tgreen (lime) = [0, 255, 0]', '\tblue = [0, 0, 255]', '\tindigo = [75, 0, 130]',
-        '\tviolet = [128, 0, 128]',
-        '/////////////////////////////////////////////////////////////',
-        '', '/////////////////////////////////////////////////////////////',
-        '"font" must be a number 0-7; feel free to try them out:',
-        '\t0: cv2.FONT_HERSHEY_SIMPLEX (default)', '\t1: cv2.FONT_HERSHEY_PLAIN',
-        '\t2: cv2.FONT_HERSHEY_DUPLEX', '\t3: cv2.FONT_HERSHEY_COMPLEX', '\t4: cv2.FONT_HERSHEY_TRIPLEX',
-        '\t5: cv2.FONT_HERSHEY_COMPLEX_SMALL', '\t6: cv2.FONT_HERSHEY_SCRIPT_SIMPLEX',
-        '\t7: cv2.FONT_HERSHEY_SCRIPT_COMPLEX',
-        '/////////////////////////////////////////////////////////////', '*/'
-        ]
-    write_args_to_file(args, 'options.json5', [item + '\n' for item in info]) #write updated args to file
-
-    # Setup arguments
-    infile_path = args.video_path.strip() #strip trailing space for MacOS compatibility
-    if args.exit_key == 'Esc' or args.exit_key == 'esc':
-        exit_key = 27
-    else:
-        exit_key = ord(args.exit_key)
-    clear_key = ord(args.clear_key)
-    duration = args.duration #duration of coordinates on screen, in seconds
-    out_dir = get_set_proper_dir(args.out_dir)
-    anno_dir = get_set_proper_dir(args.anno_dir)
-    font = args.font
-    font_color = tuple(args.font_color)
-    font_scale = args.font_scale
-    font_thickness = args.font_thickness
+        # Setup arguments for program use
+        infile_path = args.video_path.strip() #strip trailing space for MacOS compatibility
+        if args.exit_key == 'Esc' or args.exit_key == 'esc':
+            exit_key = 27
+        else:
+            exit_key = ord(args.exit_key)
+        clear_key = ord(args.clear_key)
+        duration = args.duration #duration of coordinates on screen, in seconds
+        out_dir = get_set_proper_dir(args.out_dir)
+        anno_dir = get_set_proper_dir(args.anno_dir)
+        font = args.font
+        font_color = tuple(args.font_color)
+        font_scale = args.font_scale
+        font_thickness = args.font_thickness
 
 
-    # Setup spreadsheet file
-    system_date_time = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) #ISO 8601
-    outfile_path = out_dir+system_date_time+'.xlsx'
-    headers = ['Date', 'Time', 'Coordinates']
-    setup_spreadsheet(outfile_path, headers)
+        # Setup spreadsheet file
+        system_date_time = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) #ISO 8601
+        outfile_path = out_dir+system_date_time+'.xlsx'
+        headers = ['Date', 'Time', 'Coordinates']
+        setup_spreadsheet(outfile_path, headers)
 
 
-    # Determine delay to play video at normal speed
-    cap = cv2.VideoCapture(infile_path) #create Video Capture object
-    fps = cap.get(cv2.CAP_PROP_FPS) #get fps of cap input
-    if fps == 0:
-        fps = 25 #set default if determination fails
-    delay = int(1000 / fps) #calculate delay from fps, in ms
+        # Determine delay to play video at normal speed
+        cap = cv2.VideoCapture(infile_path) #create Video Capture object
+        fps = cap.get(cv2.CAP_PROP_FPS) #get fps of cap input
+        if fps == 0:
+            fps = 25 #set default if determination fails
+        delay = int(1000 / fps) #calculate delay from fps, in ms
 
 
-    # Setup video window
-    cv2.namedWindow('Video', cv2.WINDOW_NORMAL) #create named window to display cap
-    cv2.resizeWindow('Video', 1344, 760)
-    cv2.setMouseCallback('Video', mouse_callback) #mouse callback function
+        # Setup video window
+        cv2.namedWindow('Video', cv2.WINDOW_NORMAL) #create named window to display cap
+        cv2.resizeWindow('Video', 1344, 760)
+        cv2.setMouseCallback('Video', mouse_callback) #mouse callback function
 
 
-    while cap.isOpened():
-        ret, frame = cap.read() #get cap frame-by-frame
-        if ret:
-            key_press = cv2.waitKey(delay) & 0xFF #get key_press
-            if key_press == exit_key: #quit program
+        while cap.isOpened():
+            ret, frame = cap.read() #get cap frame-by-frame
+            if ret:
+                key_press = cv2.waitKey(delay) & 0xFF #get key_press
+                if key_press == exit_key: #quit program
+                    break
+
+                if coords: #only allow deletion of [date, time, coord] when on screen
+                    if key_press == clear_key:
+                        coords = ()
+                        delete_last_coordinate(outfile_path)
+
+                    elif time.time() - coord_start_time < duration: #on-screen coordinate timeout
+                        cv2.putText(frame, str(coords), coords, font, font_scale, font_color,
+                            font_thickness)
+
+                cv2.imshow('Video', frame) #show video frame
+            else:
                 break
 
-            if coords: #only allow deletion of [date, time, coord] when on screen
-                if key_press == clear_key:
-                    coords = ()
-                    delete_last_coordinate(outfile_path)
+    except Exception as e:
+        logger.error(f"\n{e}\nOS: {platform.system()}\n", exc_info=True)
+        print('\n***AN ERROR OCCURRED! PLEASE FOLLOW THE SUPPORT INSTRUCTIONS IN THE README.***')
 
-                elif time.time() - coord_start_time < duration: #on-screen coordinate timeout
-                    cv2.putText(frame, str(coords), coords, font, font_scale, font_color,
-                        font_thickness)
-
-            cv2.imshow('Video', frame) #show video frame
-        else:
-            break
-
-    cap.release() #release video capture object
-    cv2.destroyAllWindows() #close all OpenCV windows
+    finally:
+        cap.release() #release video capture object
+        cv2.destroyAllWindows() #close all OpenCV windows
 
 
 if __name__ == "__main__":
