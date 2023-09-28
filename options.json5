@@ -1,0 +1,42 @@
+{
+    "video_path": "test.mp4",
+    "out_dir": "sheets/",
+    "anno_dir": "annotated_images/",
+    "exit_key": "q",
+    "clear_key": "c",
+    "duration": 5,
+    "font": 0,
+    "font_color": [
+        0,
+        255,
+        0
+    ],
+    "font_scale": 1,
+    "font_thickness": 2
+}
+
+/*
+/////////////////////////////////////////////////////////////
+"font_color" must be of the form [R,G,B], where R,G,B <= 255.
+You have 16.7 million options; here is the rainbow:
+	red = [255, 0, 0]
+	orange = [255, 165, 0]
+	yellow = [255, 255, 0]
+	green (lime) = [0, 255, 0]
+	blue = [0, 0, 255]
+	indigo = [75, 0, 130]
+	violet = [128, 0, 128]
+/////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////
+"font" must be a number 0-7; feel free to try them out:
+	0: cv2.FONT_HERSHEY_SIMPLEX (default)
+	1: cv2.FONT_HERSHEY_PLAIN
+	2: cv2.FONT_HERSHEY_DUPLEX
+	3: cv2.FONT_HERSHEY_COMPLEX
+	4: cv2.FONT_HERSHEY_TRIPLEX
+	5: cv2.FONT_HERSHEY_COMPLEX_SMALL
+	6: cv2.FONT_HERSHEY_SCRIPT_SIMPLEX
+	7: cv2.FONT_HERSHEY_SCRIPT_COMPLEX
+/////////////////////////////////////////////////////////////
+*/

@@ -9,13 +9,12 @@
 
 # TODO:
 # 1) argparse output file option: allow custom output file, but use get_next_filename() to prevent o/w
-#   - prevent output_dir and anno_dir from being the same name
-#   - input validation
+#   - prevent out_dir and anno_dir from being the same name (raise error)
+#   - input validation (after merging with default values?)
 #   - pip install pathvalidate
-# 2) convert string concats to join() for efficiency
-# 3) convert globals to class(es): Font, Dir, MouseCallbackHandler
+# 2) convert string concats to join() where possible for efficiency
+# 3) convert globals to class(es): Font, Dir, MouseCallback
 # 4) draw annotation on video instead of flipping back to cmd
-# 5) Resize OpenCV window
 
 
 __version__ = '2023.9.2'
@@ -29,7 +28,17 @@ import platform
 import pytesseract #Tesseract-OCR wrapper
 import cv2
 import openpyxl #Excel engine
+import json
 #import re
+#import tkinter as tk
+
+#root = tk.Tk()
+#screen_width = root.winfo_screenwidth()
+#screen_height = root.winfo_screenheight()
+#root.destroy()
+
+#print(f"Screen resolution: {screen_width}x{screen_height}")
+
 
 
 # Global variables
@@ -99,7 +108,13 @@ def get_next_filename(filename):
 
 
 def get_timestamp():
-    """Gets burnt-in timestamp via OCR (not video timestamp from OpenCV)"""
+    """Gets burnt-in timestamp via OCR (not video timestamp from OpenCV)
+    
+
+    Returns:
+        timestamp_date (str): date from timestamp, DD/MM/YYYY
+        timestamp_time (str): time from timestamp, HH:MM:SS
+    """
 
     timestamp_area = frame[30:100, 26:634] #bounding box of timestamp in pixels, [y:y+h, x:x+w]
     timestamp_gray = cv2.cvtColor(timestamp_area, cv2.COLOR_BGR2GRAY) #convert to grayscale
@@ -153,6 +168,13 @@ def delete_last_coordinate(outfile_path):
 
 
 def setup_spreadsheet(outfile_path, headers):
+    """Sets up the output spreadsheet by adding bolded headers to columns
+
+    Args:
+        outfile_path (str): the filepath to the Excel sheet
+        headers (list): the bolded column headers to be written
+    """
+
     wb = openpyxl.workbook.Workbook()
     ws = wb.active
     ws.append(headers)
@@ -163,43 +185,70 @@ def setup_spreadsheet(outfile_path, headers):
 
 
 def arg_parsing():
-    """Parses input arguments. Function encapsulates it from main"""
+    """Parses input arguments. Because it's long, separate function encapsulates it from main()
 
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description='A coordinate displaying and writing program to track chicken behavior.')
+    Returns:
+        parser.parse_args (argparse.Namespace): object containing inputted command line arguments
+    """
+
+    parser = argparse.ArgumentParser(description='A coordinate displaying and writing program to \
+        track chicken behavior.')
     parser.add_argument('video_path', help='File path to the video')
-    parser.add_argument('-od', '--output_dir', metavar='',
-        help='Name of output folder for Excel files', default='sheets/')
+    parser.add_argument('-od', '--out_dir', metavar='',
+        help='Name of output folder for Excel files')
     parser.add_argument('-ad', '--anno_dir', metavar='',
-        help='Name of output folder for annotated images', default='annotated_images/')
-    parser.add_argument('-e', '--exit_key', metavar='', help='Key to quit program', default='q')
+        help='Name of output folder for annotated images')
+    parser.add_argument('-e', '--exit_key', metavar='', help='Key to quit program')
     parser.add_argument('-c', '--clear_key', metavar='',
-        help='Key to remove coordinate from screen and Excel file', default='c')
-    parser.add_argument('-d', '--coord_dur', metavar='',
-        type=int, help='Duration of coordinates on screen in seconds', default=5)
+        help='Key to remove coordinate from screen and Excel file')
+    parser.add_argument('-d', '--duration', metavar='',
+        type=int, help='duration of coordinates on screen, in seconds')
     parser.add_argument('--version', action='version',
         version='%(prog)s {version}'.format(version=__version__))
-    # Suppressed options: change in options.json
-    parser.add_argument('-f', '--font', help=argparse.SUPPRESS, default=cv2.FONT_HERSHEY_SIMPLEX)
-    parser.add_argument('-fc', '--font_color', help=argparse.SUPPRESS, default=(0, 255, 0))
-    parser.add_argument('-fs', '--font_scale', help=argparse.SUPPRESS, default=1)
-    parser.add_argument('-ft', '--font_thickness', help=argparse.SUPPRESS, default=2)
+    # Suppressed options: change in options.json5
+    parser.add_argument('-f', '--font', type=int, help=argparse.SUPPRESS)
+    parser.add_argument('-fc', '--font_color', help=argparse.SUPPRESS)
+    parser.add_argument('-fs', '--font_scale', type=int, help=argparse.SUPPRESS)
+    parser.add_argument('-ft', '--font_thickness', type=int, help=argparse.SUPPRESS)
 
-    # Set parsed input arguments to program variables
-    args = parser.parse_args()
-    infile_path = args.video_path.strip() #strip trailing space for MacOS compatibility
-    exit_key = args.exit_key
-    clear_key = args.clear_key
-    coord_duration = args.coord_dur #duration of coordinates on screen, in seconds
-    output_dir = get_set_proper_dir(args.output_dir)
-    anno_dir = get_set_proper_dir(args.anno_dir)
-    font = args.font
-    font_color = args.font_color
-    font_scale = args.font_scale
-    font_thickness = args.font_thickness
+    return parser.parse_args()
 
-    return infile_path, exit_key, clear_key, coord_duration, output_dir, anno_dir, font, \
-    font_color, font_scale, font_thickness
+
+def write_args_to_file(args, filename, info = []):
+    """Saves input arguments to file
+
+    Args:
+        args (argparse.Namespace): arguments to be written to file
+        filename (str): .json file for writing
+        info (list) [optional]: helpful information to append to file
+    """
+
+    with open(filename, 'w') as FILE:
+        json.dump(vars(args), FILE, indent=4)
+        FILE.writelines(info)
+
+
+def get_args_from_file(filename):
+    """Gets arguments from file
+
+    Args:
+        filename
+
+    Returns:
+        argparse.Namespace: arguments from file
+    """
+
+    try:
+        with open(filename, 'r') as FILE:
+            json_data = ''
+            for line in FILE:
+                json_data += line
+                if '}' in line: #end of JSON object
+                    break
+            args_dict = json.loads(json_data)
+        return argparse.Namespace(**args_dict)
+    except FileNotFoundError:
+        return None
 
 
 def main():
@@ -217,12 +266,53 @@ def main():
     if platform.system() == 'Windows':
         pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 
-    infile_path, exit_key, clear_key, coord_duration, output_dir, anno_dir, font, font_color, \
-    font_scale, font_thickness = arg_parsing()
+
+    # Merge default arguments with input
+    args = arg_parsing() #get arg Namespace object
+    defaults = get_args_from_file('options.json5')
+    for key, val in vars(args).items():
+        if val == None:
+            setattr(args, key, getattr(defaults, key))
+
+
+    # Update arguments in options.json5 and add the info at the bottom
+    info = [
+        '\n\n/*', '/////////////////////////////////////////////////////////////',
+        '"font_color" must be of the form [R,G,B], where R,G,B <= 255.',
+        'You have 16.7 million options; here is the rainbow:',
+        '\tred = [255, 0, 0]', '\torange = [255, 165, 0]', '\tyellow = [255, 255, 0]',
+        '\tgreen (lime) = [0, 255, 0]', '\tblue = [0, 0, 255]', '\tindigo = [75, 0, 130]',
+        '\tviolet = [128, 0, 128]',
+        '/////////////////////////////////////////////////////////////',
+        '', '/////////////////////////////////////////////////////////////',
+        '"font" must be a number 0-7; feel free to try them out:',
+        '\t0: cv2.FONT_HERSHEY_SIMPLEX (default)', '\t1: cv2.FONT_HERSHEY_PLAIN',
+        '\t2: cv2.FONT_HERSHEY_DUPLEX', '\t3: cv2.FONT_HERSHEY_COMPLEX', '\t4: cv2.FONT_HERSHEY_TRIPLEX',
+        '\t5: cv2.FONT_HERSHEY_COMPLEX_SMALL', '\t6: cv2.FONT_HERSHEY_SCRIPT_SIMPLEX',
+        '\t7: cv2.FONT_HERSHEY_SCRIPT_COMPLEX',
+        '/////////////////////////////////////////////////////////////', '*/'
+        ]
+    write_args_to_file(args, 'options.json5', [item + '\n' for item in info]) #write updated args to file
+
+    # Setup arguments
+    infile_path = args.video_path.strip() #strip trailing space for MacOS compatibility
+    if args.exit_key == 'Esc' or args.exit_key == 'esc':
+        exit_key = 27
+    else:
+        exit_key = ord(args.exit_key)
+    clear_key = ord(args.clear_key)
+    duration = args.duration #duration of coordinates on screen, in seconds
+    out_dir = get_set_proper_dir(args.out_dir)
+    anno_dir = get_set_proper_dir(args.anno_dir)
+    font = args.font
+    font_color = tuple(args.font_color)
+    font_scale = args.font_scale
+    font_thickness = args.font_thickness
+
 
     # Setup spreadsheet file
     system_date_time = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) #ISO 8601
-    outfile_path = output_dir+system_date_time+'.xlsx'
+    outfile_path = out_dir+system_date_time+'.xlsx'
     headers = ['Date', 'Time', 'Coordinates']
     setup_spreadsheet(outfile_path, headers)
 
@@ -234,6 +324,8 @@ def main():
         fps = 25 #set default if determination fails
     delay = int(1000 / fps) #calculate delay from fps, in ms
 
+
+    # Setup video window
     cv2.namedWindow('Video', cv2.WINDOW_NORMAL) #create named window to display cap
     cv2.resizeWindow('Video', 1344, 760)
     cv2.setMouseCallback('Video', mouse_callback) #mouse callback function
@@ -243,15 +335,15 @@ def main():
         ret, frame = cap.read() #get cap frame-by-frame
         if ret:
             key_press = cv2.waitKey(delay) & 0xFF #get key_press
-            if key_press == ord(exit_key): #quit program
+            if key_press == exit_key: #quit program
                 break
 
             if coords: #only allow deletion of [date, time, coord] when on screen
-                if key_press == ord(clear_key):
+                if key_press == clear_key:
                     coords = ()
                     delete_last_coordinate(outfile_path)
 
-                elif time.time() - coord_start_time < coord_duration: #on-screen coordinate timeout
+                elif time.time() - coord_start_time < duration: #on-screen coordinate timeout
                     cv2.putText(frame, str(coords), coords, font, font_scale, font_color,
                         font_thickness)
 
