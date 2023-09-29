@@ -6,13 +6,33 @@ A 2D ~~and 3D coordinate system~~ for monitoring the location of chickens.
 
 [Key Knowledge](#key-knowledge)
 
+    [Windows](#windows)
+
+    [MacOS](#macos)
+
 [Prerequisites](#prerequisites)
 
+    [Windows](#windows-1)
+
+    [MacOS](#macos-1)
+
+    [Both](#both)
+
 [Installation](#installation)
+
+     [Windows](#windows-2)
+
+    [MacOS](#macos-2)
 
 [How to Use](#how-to-use)
 
 [Usage](#usage)
+
+     [Windows](#windows-3)
+
+    [MacOS](#macos-3)
+
+    [Examples](#examples)
 
 [Compatibility](#compatibility)
 
@@ -20,9 +40,9 @@ A 2D ~~and 3D coordinate system~~ for monitoring the location of chickens.
 
 [Support](#support)
 
+[Development Tools Used](#development-tools-used)
+
 [License](#license)
-
-
 
 ## Key knowledge
 
@@ -33,8 +53,6 @@ To open a command prompt, press the Windows key or click the Start Menu, type *c
 ### MacOS
 
 To open a Terminal, press Cmd + space, type *terminal*, and press return/enter. To paste into a Terminal, right-click.
-
-
 
 ## Prerequisites
 
@@ -71,8 +89,6 @@ Python 3.x (tested with 3.8, 3.11). Download the latest for your system [here](h
 
         If both respond with a version number, you're good to go
 
- 
-
 ## Installation
 
 Download a [zip](https://github.com/lorians22/ChickenMap/archive/refs/heads/main.zip) of the code, then extract to a folder on the Desktop. Open a command prompt/Terminal, navigate to the folder, and install the requirements:
@@ -91,8 +107,6 @@ Download a [zip](https://github.com/lorians22/ChickenMap/archive/refs/heads/main
   pip install -r requirements.txt
 ```
 
- 
-
 ## How To Use
 
 - Press `q` to quit the program. Clicking the X (Windows) or red dot (MacOS) will just replace the video with another window.
@@ -110,8 +124,6 @@ Download a [zip](https://github.com/lorians22/ChickenMap/archive/refs/heads/main
   - The video will freeze/pause. Go back to the Command Prompt/Terminal window, type your annotation, and hit enter. The annotation will not appear on screen. The video will resume. To return to the chicken video, click the Python/video window border or taskbar icon to go back to the chicken video. It is important to click on the window border or taskbar icon, as clicking inside the video will produce a coordinate. If you accidentally click the screen and a coordinate appears, press 'c' to clear the coordinate.
   
   - Annotated images are saved in the `annotated_images/` directory. You can find these .jpg files in the `ChickenMap-main/` folder. Filenames are based on the timestamp in the top-left corner of the video; annotations at the same timestamp are given a `_#` suffix to prevent overwriting.
-
- 
 
 ## Usage
 
@@ -136,9 +148,9 @@ py chickenMap.py -h
 | -c             | --clear_key   | Key to remove coordinate from screen and Excel file (a-z, 0-9) | c                 |
 | -d             | --duration    | Duration of coordinates on screen, in seconds                  | 5                 |
 
-Full options are available in the `options.json5` file. Any option not entered at the command line will use the one stored in this file. Here, you can also edit font, font color, font scale, and font thickness. See the comments in the file for limitations.
+Full options are available in the `options.json5` file. You can open this file with Notepad (Windows) or TextEdit (MacOS), or your favorite text editor, if you have one. Make sure to save the file after you change options. Any option not entered at the command line will default to the one stored in this file. Here, you can also edit font, font color, font scale, and font thickness. See the comments in the file for limitations.
 
-For example, you can change all the settings you want in `options.json5` and then just type `py chickenMap.py VIDEO_PATH`, and the program will use the settings you entered into `options.json5`.
+For example, you can change all the settings you want in `options.json5` and just type `py chickenMap.py VIDEO_PATH` into the command line, and the program will use the settings you entered into `options.json5`. This should be more user-friendly.
 
 ### Windows
 
@@ -176,8 +188,6 @@ Kitchen-sink example - set the exit key to Esc, output directory to `shts/`, ann
 py chickenMap.py test.mp4 -e Esc -od shts -ad anno_im -d 2
 ```
 
- 
-
 ## Compatibility
 
 Tested with:
@@ -214,19 +224,21 @@ Tested with:
     
     - openpyxl 3.1.2
 
- 
-
 ## Privacy
 
 This program does not store or transmit any user data to an external source and can run without connection to the Internet. Your OS/platform (Windows, MacOS) is determined at runtime to point `pytesseract` to the Tesseract-OCR executable on Windows, and it is not stored after the program exits. Program errors and platform info are stored in `error_log.txt` and are not transmitted by this program; if you have errors, see [Support](#support).
-
- 
 
 ## Support
 
 For support, email me at logan.orians@gmail.com or message me on [Discord](https://discord.com/users/l_orians). Please attach `error_log.txt` to your message and describe what you were doing when the error occurred.
 
- 
+## Development Tools Used
+
+- [MarkText](https://www.marktext.cc/) for README editing
+
+- [Sublime Text 4](https://www.sublimetext.com/), [Notepad++](https://notepad-plus-plus.org/) and [VSCode](https://code.visualstudio.com/) for text editing and programming
+
+# 
 
 
 ## License
