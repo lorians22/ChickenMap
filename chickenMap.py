@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 """A coordinate mapping program made initially for chicken research"""
 
 # Date: 07/13/23
@@ -36,25 +38,15 @@ import logging
 #import re
 #import tkinter as tk
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-file_handler = logging.FileHandler('error_log.txt')
-file_handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
-
-
 #root = tk.Tk()
 #screen_width = root.winfo_screenwidth()
 #screen_height = root.winfo_screenheight()
 #root.destroy()
-
 #print(f"Screen resolution: {screen_width}x{screen_height}")
 
 
-
 # Global variables
+# TODO
 frame = None #get_timestamp() needs video frame when mouse is clicked
 coords = () #need to get coords from mouse_callback, but mouse_callback doesn't "return"
 outfile_path = ''
@@ -69,7 +61,7 @@ font_thickness = None
 def mouse_callback(event, x, y, *_):
     """
     Runs when mouse input is received on the video window. Gets coordinate from mouse input and
-    video timestamp via OCR
+    video timestamp via OCR.
     """
 
     global coords
@@ -115,13 +107,13 @@ def get_next_filename(filename):
     count = 0
     while os.path.exists(new_file):
         count += 1
-        new_file = '{}_{}{}'.format(root, count, ext)
+        new_file = f'{root}_{count}{ext}'
 
     return new_file
 
 
 def get_timestamp():
-    """Gets burnt-in timestamp via OCR (not video timestamp from OpenCV)
+    """Gets burnt-in timestamp via OCR (not video timestamp from OpenCV).
     
 
     Returns:
@@ -148,7 +140,7 @@ def get_timestamp():
 
 
 def get_set_proper_dir(argument):
-    """Makes sure input argument is a directory
+    """Makes sure input argument is a directory.
     
     Args:
         argument (str): the input argument directory
@@ -165,8 +157,8 @@ def get_set_proper_dir(argument):
     return argument
 
 
-def setup_spreadsheet(outfile_path, headers):
-    """Sets up the output spreadsheet by adding bolded headers to columns
+def set_up_spreadsheet(outfile_path, headers):
+    """Sets up the output spreadsheet by adding bolded headers to columns.
 
     Args:
         outfile_path (str): the filepath to the Excel sheet
@@ -188,66 +180,67 @@ def delete_last_coordinate(outfile_path):
     Args:
         outfile_path (str): the filepath to the Excel sheet
     """
-    
-    wb = openpyxl.load_workbook(outfile_path)
-    ws = wb.active
-    last_row = ws.max_row
-    ws.delete_rows(last_row)
-    wb.save(outfile_path)
-    wb.close()
+
+    with openpyxl.load_workbook(outfile_path) as wb:
+        ws = wb.active
+        last_row = ws.max_row
+        ws.delete_rows(last_row)
+        wb.save(outfile_path)
+        wb.close()
 
 
 def arg_parsing():
-    """Parses input arguments. Because it's long, separate function encapsulates it from main()
+    """Parses input arguments. Because it's long, separate function encapsulates it from main().
 
     Returns:
-        parser.parse_args (argparse.Namespace): object containing inputted command line arguments
+        parser.parse_args() (argparse.Namespace): object containing inputted command line arguments
     """
 
-    parser = argparse.ArgumentParser(description='A coordinate displaying and writing program to \
-        track chicken behavior.')
+    parser = argparse.ArgumentParser(
+        description='A coordinate displaying and writing program to track chicken behavior.')
     parser.add_argument('video_path', help='File path to the video')
     parser.add_argument('-od', '--out_dir', metavar='',
-        help='Name of output folder for Excel files')
+        help='Name of output folder for Excel files (default: sheets/)')
     parser.add_argument('-ad', '--anno_dir', metavar='',
-        help='Name of output folder for annotated images')
-    parser.add_argument('-e', '--exit_key', metavar='', help='Key to quit program')
+        help='Name of output folder for annotated images (default: annotated_images/)')
+    parser.add_argument('-e', '--exit_key', metavar='', help='Key to quit program (default: e)')
     parser.add_argument('-c', '--clear_key', metavar='',
-        help='Key to remove coordinate from screen and Excel file')
+        help='Key to remove coordinate from screen and Excel file (default: c)')
     parser.add_argument('-d', '--duration', metavar='',
-        type=int, help='duration of coordinates on screen, in seconds')
-    parser.add_argument('--version', action='version',
-        version='%(prog)s {version}'.format(version=__version__))
-    # Suppressed options: change in options.json5
+        type=int, help='duration of coordinates on screen, in seconds (default: 5)')
+    
+    # Suppressed options: change in options.json5, except for --version
     parser.add_argument('-f', '--font', type=int, help=argparse.SUPPRESS)
     parser.add_argument('-fc', '--font_color', help=argparse.SUPPRESS)
     parser.add_argument('-fs', '--font_scale', type=int, help=argparse.SUPPRESS)
     parser.add_argument('-ft', '--font_thickness', type=int, help=argparse.SUPPRESS)
+    parser.add_argument('--version', action='version',
+        version=f'%(prog)s {__version__}', help=argparse.SUPPRESS)
 
     return parser.parse_args()
 
 
 def write_args_to_file(args, filename):
-    """Saves input arguments to file
+    """Saves input arguments to file.
 
     Args:
         args (argparse.Namespace): arguments to be written to file
         filename (str): .json file for writing
     """
 
-    separation = '*************************************************************\n'
+    arg_separator = '*' * 62 + '\n'
     info = [
-        '\n\n/*\n', separation, '"font_color" must be of the form [R,G,B], where R,G,B <= 255.\n',
+        '\n\n/*\n', arg_separator, '"font_color" must be of the form [R,G,B], where R,G,B <= 255.\n',
         'You have 16.7 million options; here is the rainbow:\n', '\tred = [255, 0, 0]\n',
         '\torange = [255, 165, 0]\n', '\tyellow = [255, 255, 0]\n',
         '\tgreen (lime) = [0, 255, 0]\n', '\tblue = [0, 0, 255]\n', '\tindigo = [75, 0, 130]\n',
-        '\tviolet = [128, 0, 128]\n', separation, '\n', separation,
+        '\tviolet = [128, 0, 128]\n', arg_separator, '\n', arg_separator,
         '"font" must be a number 0-7, or 16; feel free to try them out:\n',
         '\t0: normal size sans-serif font (default)\n', '\t1: small size sans-serif font\n',
         '\t2: normal size sans-serif font, complex\n', '\t3: normal size serif font\n',
         '\t4: normal size serif font, complex\n', '\t5: small size serif font\n',
         '\t6: hand-writing style font\n', '\t7: hand-writing style font, complex\n',
-        '\t16: italic font\n', separation, '*/\n'
+        '\t16: italic font\n', arg_separator, '*/\n'
     ]
 
     with open(filename, 'w') as FILE:
@@ -256,7 +249,7 @@ def write_args_to_file(args, filename):
 
 
 def get_args_from_file(filename):
-    """Gets arguments from file
+    """Gets default optional arguments from file.
 
     Args:
         filename
@@ -276,6 +269,44 @@ def get_args_from_file(filename):
     return argparse.Namespace(**args_dict)
 
 
+# TODO
+def get_system_info():
+    """Gets JSON-serialized system info for the error log file.
+
+    Returns:
+        info (str): multi-line string containing system info
+    """
+
+    uname = platform.uname()
+
+    info = (
+        f'OS: {uname.system}\n'
+        f'Release: {uname.release}\n'
+        f'Version: {uname.version}\n'
+        f'Processor: {platform.processor()}\n'
+    )
+    print(type(info))
+    return info
+
+
+def set_up_logger():
+    """ Sets up error logger with custom terminator to separate error entries.
+
+    Returns:
+        logger (logging.Logger): an instance of a logger object
+    """
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    file_handler = logging.FileHandler('error_log.txt')
+    file_handler.terminator = f'\n\n{"=" * 80}\n\n'
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+    return logger
+
+
 def main():
     global frame
     global coords
@@ -287,12 +318,14 @@ def main():
     global font_thickness
 
 
+    logger = set_up_logger()
+
+    #point pytesseract to tesseract executable
+    if platform.system() == 'Windows':
+        pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
+
+
     try:
-        #point pytesseract to tesseract executable
-        if platform.system() == 'Windows':
-            pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
-
-
         # Merge default arguments with input, write to file
         options_file = 'options.json5'
         args = arg_parsing() #get arg Namespace object
@@ -303,7 +336,7 @@ def main():
         write_args_to_file(args, options_file) #write updated args to file
 
 
-        # Setup arguments for program use
+        # Set up arguments for program use
         infile_path = args.video_path.strip() #strip trailing space for MacOS compatibility
         if args.exit_key == 'Esc' or args.exit_key == 'esc':
             exit_key = 27
@@ -319,11 +352,11 @@ def main():
         font_thickness = args.font_thickness
 
 
-        # Setup spreadsheet file
+        # Set up spreadsheet file
         system_date_time = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) #ISO 8601
         outfile_path = out_dir+system_date_time+'.xlsx'
         headers = ['Date', 'Time', 'Coordinates']
-        setup_spreadsheet(outfile_path, headers)
+        set_up_spreadsheet(outfile_path, headers)
 
 
         # Determine delay to play video at normal speed
@@ -334,7 +367,7 @@ def main():
         delay = int(1000 / fps) #calculate delay from fps, in ms
 
 
-        # Setup video window
+        # Set up video window
         cv2.namedWindow('Video', cv2.WINDOW_NORMAL) #create named window to display cap
         cv2.resizeWindow('Video', 1344, 760)
         cv2.setMouseCallback('Video', mouse_callback) #mouse callback function
@@ -361,12 +394,13 @@ def main():
                 break
 
     except Exception as e:
-        logger.error(f"\n{e}\nOS: {platform.system()}\n", exc_info=True)
+        logger.error(f"\nError: {e}\n{get_system_info()}\n", exc_info=True)
         print('\n***AN ERROR OCCURRED! PLEASE FOLLOW THE SUPPORT INSTRUCTIONS IN THE README.***')
 
     finally:
-        cap.release() #release video capture object
-        cv2.destroyAllWindows() #close all OpenCV windows
+        if 'cap' in locals() or 'cap' in globals(): #if program initialized cap before error
+            cap.release() #release video capture object
+            cv2.destroyAllWindows() #close all OpenCV windows
 
 
 if __name__ == "__main__":
