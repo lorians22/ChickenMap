@@ -11,15 +11,14 @@
 
 # TODO:
 # 1) argparse output file option: allow custom output file, but use get_next_filename() to prevent o/w
-#   - prevent out_dir and anno_dir from being the same name (raise error)
+#   - prevent out_dir and anno_dir from being the same name (raise custom error)
 #   - input validation (after merging with default values?)
 #   - pip install pathvalidate
 # 2) convert string concats to join() where possible for efficiency
-# 3) convert globals to class(es): Font, Dir, MouseCallback
+# 3) convert globals to class(es): Font, Directory, MouseCallback
 # 4) draw annotation on video instead of flipping back to cmd
 # 5) add error logger to except (Logger class?)
 #   - add try-except to arg_parsing()
-#   - encase main in try-except?
 
 
 __version__ = '2023.9.2'
@@ -38,11 +37,30 @@ import logging
 #import re
 #import tkinter as tk
 
+
 #root = tk.Tk()
 #screen_width = root.winfo_screenwidth()
 #screen_height = root.winfo_screenheight()
 #root.destroy()
 #print(f"Screen resolution: {screen_width}x{screen_height}")
+
+
+class AnnotationManager:
+    def __init__(self):
+        self.anno_text = ''
+        self.typing = False
+        self.enter_time = 0
+        self.show_anno = False
+        self.write_anno = False
+        self.anno_pos = (0, 0)
+
+    def start_typing(self, x, y):
+        self.typing = True
+        self.anno_text = ''
+        self.enter_time = 0
+        self.show_anno = True
+        self.write_anno = False
+        self.anno_pos = (x, y)
 
 
 # Global variables
@@ -56,6 +74,7 @@ font = None
 font_color = None
 font_scale = None
 font_thickness = None
+annotation_manager = AnnotationManager()
 
 
 def mouse_callback(event, x, y, *_):
@@ -66,30 +85,32 @@ def mouse_callback(event, x, y, *_):
 
     global coords
     global coord_start_time
+    global annotation_manager
 
-    if event == cv2.EVENT_LBUTTONDOWN: #left mouse click
-        coord_start_time = time.time()
-        coords = (x, y)
-        timestamp_date, timestamp_time = get_timestamp()
-        data = [timestamp_date, timestamp_time, f'({x}, {y})'] #use f-string to format coordinate
-        wb = openpyxl.load_workbook(outfile_path) #open existing workbook
-        wb.active.append(data) #append data to sheet
-        wb.save(outfile_path) #save workbook
-        wb.close() #close file
+    if not annotation_manager.typing: #if user *isn't* creating annotation
+        if event == cv2.EVENT_LBUTTONDOWN: #left mouse click
+            coord_start_time = time.time()
+            coords = (x, y)
+            timestamp_date, timestamp_time = get_timestamp()
+            data = [timestamp_date, timestamp_time, f'({x}, {y})'] #use f-string to format coordinate
+            wb = openpyxl.load_workbook(outfile_path) #open existing workbook
+            wb.active.append(data) #append data to sheet
+            wb.save(outfile_path) #save workbook
+            wb.close() #close file
 
-        #Print timestamp and coordinates in case .xlsx gets corrupted
-        print(timestamp_date)
-        print(timestamp_time)
-        print(str(coords)+'\n')
+            #Print timestamp and coordinates in case .xlsx gets corrupted
+            print(timestamp_date)
+            print(timestamp_time)
+            print(str(coords)+'\n')
 
-
-    elif event == cv2.EVENT_RBUTTONDOWN: #right mouse click
-        _, timestamp_time = get_timestamp()
-        annotation = input('Enter annotation: ')
-        cv2.putText(frame, annotation, (x, y), font, font_scale, font_color, font_thickness)
-        filename = anno_dir+timestamp_time.replace(':', '-')+'.jpg'
-        anno_filename = get_next_filename(filename) #makes sure not to overwrite image
-        cv2.imwrite(anno_filename, frame)
+        elif event == cv2.EVENT_RBUTTONDOWN: #right mouse click
+            
+            print('here')
+            annotation_manager.start_typing(x, y)
+            print('here2')
+            #annotation = input('Enter annotation: ')
+            #cv2.putText(frame, annotation, (x, y), font, font_scale, font_color, font_thickness)
+            
 
 
 def get_next_filename(filename):
@@ -181,12 +202,12 @@ def delete_last_coordinate(outfile_path):
         outfile_path (str): the filepath to the Excel sheet
     """
 
-    with openpyxl.load_workbook(outfile_path) as wb:
-        ws = wb.active
-        last_row = ws.max_row
-        ws.delete_rows(last_row)
-        wb.save(outfile_path)
-        wb.close()
+    wb = openpyxl.load_workbook(outfile_path)
+    ws = wb.active
+    last_row = ws.max_row
+    ws.delete_rows(last_row)
+    wb.save(outfile_path)
+    wb.close()
 
 
 def arg_parsing():
@@ -278,14 +299,12 @@ def get_system_info():
     """
 
     uname = platform.uname()
-
     info = (
-        f'OS: {uname.system}\n'
+        f'\nOS: {uname.system}\n'
         f'Release: {uname.release}\n'
         f'Version: {uname.version}\n'
         f'Processor: {platform.processor()}\n'
     )
-    print(type(info))
     return info
 
 
@@ -316,9 +335,11 @@ def main():
     global font_color
     global font_scale
     global font_thickness
+    global annotation_manager
 
 
     logger = set_up_logger()
+
 
     #point pytesseract to tesseract executable
     if platform.system() == 'Windows':
@@ -377,14 +398,46 @@ def main():
             ret, frame = cap.read() #get cap frame-by-frame
             if ret:
                 key_press = cv2.waitKey(delay) & 0xFF #get key_press
-                if key_press == exit_key: #quit program
-                    break
+                if not annotation_manager.typing:
+                    if key_press == exit_key: #quit program
+                        break
+                    if annotation_manager.write_anno:
+                        annotation_manager.write_anno = False
+                        #filename = anno_dir+timestamp_time.replace(':', '-')+'.jpg'
+                        #anno_filename = get_next_filename(filename) #makes sure not to overwrite image
+                        #cv2.imwrite(anno_filename, frame)
+                    if time.time() - annotation_manager.enter_time > duration:
+                        annotation_manager.show_anno = False
+                        annotation_manager.anno_text = ''
+
+                else:
+                    #_, timestamp_time = get_timestamp()
+                    if key_press != 255:
+                        if key_press == 13: #Enter
+                            print('Enter')
+                            annotation_manager.typing = False
+                            annotation_manager.write_anno = True
+                            annotation_manager.enter_time = time.time()
+                        elif key_press == 27: #Esc
+                            print('Esc')
+                            annotation_manager.typing = False
+                            annotation_manager.show_anno = False
+                            annotation_manager.anno_text = ''
+                        elif key_press == 8: #Backspace
+                            print('Backspace')
+                            if annotation_manager.anno_text: #DON'T COMBINE INTO ^ELIF
+                                annotation_manager.anno_text = annotation_manager.anno_text[:-1]
+                        else:
+                            print('else')
+                            annotation_manager.anno_text += chr(key_press)
+
+                if annotation_manager.show_anno:
+                    cv2.putText(frame, annotation_manager.anno_text, (200, 200), font, 3*font_scale, font_color, font_thickness)
 
                 if coords: #only allow deletion of [date, time, coord] when on screen
                     if key_press == clear_key:
                         coords = ()
                         delete_last_coordinate(outfile_path)
-
                     elif time.time() - coord_start_time < duration: #on-screen coordinate timeout
                         cv2.putText(frame, str(coords), coords, font, font_scale, font_color,
                             font_thickness)
