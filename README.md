@@ -1,6 +1,6 @@
 # Chicken Map
 
-A 2D ~~and 3D coordinate system~~ for monitoring the location of chickens.
+A 2D coordinate mapping program for monitoring the location of chickens.
 
 ## Table of Contents
 
@@ -20,7 +20,7 @@ A 2D ~~and 3D coordinate system~~ for monitoring the location of chickens.
 
 [Installation](#installation)
 
-     [Windows](#windows-2)
+    [Windows](#windows-2)
 
     [MacOS](#macos-2)
 
@@ -28,7 +28,7 @@ A 2D ~~and 3D coordinate system~~ for monitoring the location of chickens.
 
 [Usage](#usage)
 
-     [Windows](#windows-3)
+    [Windows](#windows-3)
 
     [MacOS](#macos-3)
 
@@ -40,19 +40,39 @@ A 2D ~~and 3D coordinate system~~ for monitoring the location of chickens.
 
 [Support](#support)
 
-[Development Tools Used](#development-tools-used)
+[Development](#development)
+
+    [Style and Formatting](#style-and-formatting)
+
+    [Tools Used](#tools-used)
 
 [License](#license)
+
+ 
 
 ## Key knowledge
 
 ### Windows
 
-To open a command prompt, press the Windows key or click the Start Menu, type *cmd*, and press enter. To paste into a command prompt, right-click.
+- To open a command prompt, press the Windows key or click the Start Menu, type *cmd*, and press enter.
+
+- To execute a command, type the command and press Enter.
+
+- To paste into a command prompt, right-click.
+
+- To re-run a previous command, navigate between them using the up and down arrow keys, then press Enter.
 
 ### MacOS
 
-To open a Terminal, press Cmd + space, type *terminal*, and press return/enter. To paste into a Terminal, right-click.
+- To open a Terminal, press Cmd + space, type *terminal*, and press Return/Enter.
+
+- To execute a command, type the command and press Return/Enter.
+
+- To paste into a Terminal, right-click.
+
+- To re-run a previous command, navigate between them using the up and down arrow keys, then press Enter.
+
+ 
 
 ## Prerequisites
 
@@ -62,7 +82,7 @@ Tesseract 5.x. (tested with 5.3.1). Download the latest [here for Windows](https
 
 ### MacOS
 
-Tesseract 5.x (tested with 5.3.2). First, install homebrew:
+Tesseract 5.x (tested with 5.3.2). First, install homebrew if not already installed:
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -76,7 +96,9 @@ brew install tesseract -y
 
 ### Both
 
-Python 3.x (tested with 3.8, 3.11). Download the latest for your system [here](https://www.python.org/downloads/). When installing, make sure to check the *Add python.exe to PATH* box, then click *Install Now*.
+Python 3.x (tested with 3.8, 3.11). Download the latest for your system [here](https://www.python.org/downloads/). On Windows, when installing, make sure to check the *Add python.exe to PATH* box, then click *Install Now*.
+
+![pythonPath.png](C:\Users\st33l\ChickenMap-main\pythonPath.png)
 
 * At the end, you have the option to *Disable path length limit*. While not necessary for this program, it's a good idea to click that option.
 
@@ -87,11 +109,23 @@ Python 3.x (tested with 3.8, 3.11). Download the latest for your system [here](h
   pip3 --version
   ```
 
-        If both respond with a version number, you're good to go
+        If both respond with a version number, you're good to go.
+
+ 
 
 ## Installation
 
-Download a [zip](https://github.com/lorians22/ChickenMap/archive/refs/heads/main.zip) of the code, then extract to a folder on the Desktop. Open a command prompt/Terminal, navigate to the folder, and install the requirements:
+Download a [zip](https://github.com/lorians22/ChickenMap/archive/refs/heads/main.zip) of this code, then extract. Required Python libraries for this program:
+
+- OpenCV-Python
+
+- Python-tesseract
+
+- Pillow
+
+- openpyxl
+
+These can be installed automatically by opening a command prompt/Terminal, navigating to the folder, and using `pip` to read the requirements file:
 
 ### Windows
 
@@ -107,6 +141,8 @@ Download a [zip](https://github.com/lorians22/ChickenMap/archive/refs/heads/main
   pip install -r requirements.txt
 ```
 
+ 
+
 ## How To Use
 
 - Press `q` to quit the program. Clicking the X (Windows) or red dot (MacOS) will just replace the video with another window.
@@ -115,19 +151,27 @@ Download a [zip](https://github.com/lorians22/ChickenMap/archive/refs/heads/main
   
   - Coordinates are saved along with their video timestamps (from the top-left corner of the video) in an Excel file in the `sheets/` directory. You can find this .xlsx file in the `ChickenMap-main/` folder. Filenames are based on your system's date and time when the program started.
   
-  - Coordinates remain on screen for 5 seconds after click. Press `c` while a coordinate is on-screen to clear it from the screen and remove it from the Excel sheet. Once the coordinate is off-screen, the coordinate cannot be cleared from the Excel sheet.
+  - Coordinates remain on screen for 5 seconds after click by default. Press `c` while a coordinate is on-screen to clear it from the screen and remove it from the Excel sheet. Once the coordinate is off-screen, the coordinate cannot be cleared from the Excel sheet.
   
   - Coordinates and timestamps are printed to the Command Prompt/Terminal window as a backup and are not removed when `c` is pressed.
 
 - Right-click to annotate at your cursor.
   
-  - The video will freeze/pause. Go back to the Command Prompt/Terminal window, type your annotation, and hit enter. The annotation will not appear on screen. The video will resume. To return to the chicken video, click the Python/video window border or taskbar icon to go back to the chicken video. It is important to click on the window border or taskbar icon, as clicking inside the video will produce a coordinate. If you accidentally click the screen and a coordinate appears, press 'c' to clear the coordinate.
+  - The video will freeze/pause. While a flashing typing cursor will not appear on screen, each key you press will, at the location you right-clicked.
+    
+    - Press `Enter` to save the annotated image and resume the video.
+    
+    - Press `Esc` to exit without saving the annotated image and resume the video.
+    
+    - Annotations will stay on screen for 5 seconds by default.
   
-  - Annotated images are saved in the `annotated_images/` directory. You can find these .jpg files in the `ChickenMap-main/` folder. Filenames are based on the timestamp in the top-left corner of the video; annotations at the same timestamp are given a `_#` suffix to prevent overwriting.
+  - Annotated images are saved in the `annotated_images/<timestamp>` directory, where `<timestamp>` is the system date/time when you ran the program. You can find these .jpg files in the `ChickenMap-main/` folder. Filenames are based on the timestamp in the top-left corner of the video; annotations at the same timestamp are given a `_#` suffix to prevent overwriting.
+
+ 
 
 ## Usage
 
-See [Examples](#examples) for platform-specific instructions (what you should actually type into the command line). VIDEO_PATH is a required argument; arguments encapsulated by brackets are optional, meaning they do not have to be entered.
+See [Examples](#examples) for platform-specific instructions (what you should actually type into the command line). `VIDEO_PATH` is a required argument; arguments encapsulated by brackets are optional.
 
 ```bash
 py chickenMap.py VIDEO_PATH [out_dir] [anno_dir] [exit_key] \
@@ -143,14 +187,14 @@ py chickenMap.py -h
 | Short Argument | Long Argument | Description                                                    | Default           |
 | -------------- | ------------- | -------------------------------------------------------------- | ----------------- |
 | -od            | --out_dir     | Name of output folder for Excel files                          | sheets/           |
-| -ad            | --anno_dir    | Name of output folder for annotated_images                     | annotated_images/ |
+| -ad            | --anno_dir    | Name of output folder for annotated images                     | annotated_images/ |
 | -e             | --exit_key    | Key to quit program (a-z, 0-9)                                 | q                 |
 | -c             | --clear_key   | Key to remove coordinate from screen and Excel file (a-z, 0-9) | c                 |
 | -d             | --duration    | Duration of coordinates on screen, in seconds                  | 5                 |
 
 Full options are available in the `options.json5` file. You can open this file with Notepad (Windows) or TextEdit (MacOS), or your favorite text editor, if you have one. Make sure to save the file after you change options. Any option not entered at the command line will default to the one stored in this file. Here, you can also edit font, font color, font scale, and font thickness. See the comments in the file for limitations.
 
-For example, you can change all the settings you want in `options.json5` and just type `py chickenMap.py VIDEO_PATH` into the command line, and the program will use the settings you entered into `options.json5`. This should be more user-friendly.
+You can change all the settings you want in `options.json5` and just type `py chickenMap.py VIDEO_PATH` into the command line, and the program will use the settings you entered into `options.json5`. Options entered at command line are saved to `options.json5` so you don't have to retype them each time.
 
 ### Windows
 
@@ -176,17 +220,19 @@ python chickenMap.py VIDEO_PATH
 
 ### Examples
 
-Basic:
+Basic, uses the options in `options.json5`:
 
 ```bash
 py chickenMap.py test.mp4
 ```
 
-Kitchen-sink example - set the exit key to Esc, output directory to `shts/`, annotated images folder to `anno_im/`, and duration of on-screen coordinates to 2 seconds:
+Set the exit key to `Esc` and the duration of on-screen coordinates and annotations to 2 seconds, with the other options being filled in from `options.json5`:
 
 ```bash
-py chickenMap.py test.mp4 -e Esc -od shts -ad anno_im -d 2
+py chickenMap.py test.mp4 -e Esc -d 2
 ```
+
+ 
 
 ## Compatibility
 
@@ -194,21 +240,23 @@ Tested with:
 
 - Devices and Platforms
   
-  - MacOS
-    
-    - 2015 MacBook Pro (Intel) running MacOS 12.6.3
-    
-    - 2020 MacBook Air (M1) running MacOS 13
-  
   - Windows
-    
-    - 2015 MacBook Pro (Intel) running Windows 10 Home via Boot Camp
     
     - AM4 PC running Windows 10 Pro 22H2 (build 19045)
     
     - Samsung laptop running Windows 11 Home 22H2 (build 22621)
+    
+    - 2015 MacBook Pro (Intel) running Windows 10 Home via Boot Camp
   
-  - *Linux probably works since MacOS works, but I offer no detailed instructions for it (you can figure it out).*
+  - MacOS
+    
+    - 2020 MacBook Air (M1) running MacOS 13
+    
+    - 2015 MacBook Pro (Intel) running MacOS 12.6.3
+    
+    - AM4 PC running MacOS 12.6 via OpenCore
+  
+  - *Linux probably works since MacOS works, but I offer no detailed instructions for it (you run Linux — you can figure it out).*
 
 - Software
   
@@ -224,21 +272,33 @@ Tested with:
     
     - openpyxl 3.1.2
 
+
+
 ## Privacy
 
-This program does not store or transmit any user data to an external source and can run without connection to the Internet. Your OS/platform (Windows, MacOS) is determined at runtime to point `pytesseract` to the Tesseract-OCR executable on Windows, and it is not stored after the program exits. Program errors and platform info are stored in `error_log.txt` and are not transmitted by this program; if you have errors, see [Support](#support).
+This program does not store or transmit any user data to an external source and can run without connection to the Internet. Your OS/platform (Windows, MacOS) is determined at runtime to point `pytesseract` to the Tesseract-OCR executable on Windows, and it is not stored after the program exits. Program errors and platform info (OS version, Python version, processor name) are stored in `error_log.txt` and are not transmitted by this program; if you have errors, see [Support](#support).
+
+
 
 ## Support
 
-For support, email me at logan.orians@gmail.com or message me on [Discord](https://discord.com/users/l_orians). Please attach `error_log.txt` to your message and describe what you were doing when the error occurred.
+For non-guaranteed support, email me at logan.orians@gmail.com or message me on [Discord](https://discord.com/users/l_orians). Please attach `error_log.txt` to your message and describe what you were doing when the error occurred.
 
-## Development Tools Used
 
-- [MarkText](https://www.marktext.cc/) for README editing
+
+## Development
+
+### Style and Formatting
+
+This code attempts to follow both [PEP 8](https://peps.python.org/pep-0008/) and the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html), with programmer's freedom on conflicting elements.
+
+### Tools Used
 
 - [Sublime Text 4](https://www.sublimetext.com/), [Notepad++](https://notepad-plus-plus.org/) and [VSCode](https://code.visualstudio.com/) for text editing and programming
 
-# 
+- [MarkText](https://www.marktext.cc/) for README editing
+
+
 
 
 ## License
