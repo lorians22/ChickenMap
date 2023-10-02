@@ -98,7 +98,9 @@ brew install tesseract -y
 
 Python 3.x (tested with 3.8, 3.11). Download the latest for your system [here](https://www.python.org/downloads/). On Windows, when installing, make sure to check the *Add python.exe to PATH* box, then click *Install Now*.
 
-![pythonPath.png](C:\Users\st33l\ChickenMap-main\pythonPath.png)
+![Add python.exe to PATH](./pythonPath.png)
+
+
 
 * At the end, you have the option to *Disable path length limit*. While not necessary for this program, it's a good idea to click that option.
 
