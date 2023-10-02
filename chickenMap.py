@@ -1,7 +1,15 @@
 #!/usr/bin/python3
 
-#TODO: follow google style guide (incorporate Usage)
+#TODO: follow google style guide docstrings (incorporate Usage)
 """A coordinate mapping program made initially for chicken research"""
+
+'''
+Copyright 2023, Logan Orians in affiliation with Purdue University:
+    Dr. Marisa Erasmus and Gideon Ajibola.
+
+Approved for private use by students and employees of Purdue University only.
+No implied support or warranty.
+'''
 
 # Date: 07/13/23
 
@@ -11,20 +19,23 @@
 # ex. py chickenMap.py test.mp4
 
 # TODO:
+# 0) update coords for 2D vs 3D (get_3D_from_2D); --3D input arg
 # 1) argparse output file option: allow custom output file, but use get_next_filename() to prevent o/w
 #   - prevent out_dir and anno_dir from being the same name (raise custom error)
 #   - input validation (after merging with default values?)
 #   - pip install pathvalidate
 # 2) convert string concats to join() where possible for efficiency
-# 3) convert globals to class(es): Font, Directory, MouseCallback
+# 3) convert globals to classes: Font, Directory, MouseCallback
 # 4) add error logger to except (Logger class?)
 #   - add try-except to arg_parsing()
 # 5) location-aware text drawing, like how a right-click menu flows up or down from cursor
 # 6) function type hints
-# 7) directory inside anno_images with timestamp title, like Excel. Then timestamp image names inside
+# 7) update code whitespace based on GPSG
+# 8) add GUI (dropdown menus, sanitized text boxes) for options.json5?
+# 9) change ruler to 80 and wrap appropriately
 
 # TO DO For someone that isn't me and knows Python UI development:
-#   convert this to use a dedicated UI and keyboard/mouse input library instead of OpenCV
+#   convert this to use a dedicated UI and keyboard/mouse input library instead of OpenCV?
 
 
 __version__ = '2023.9.3'
@@ -38,7 +49,7 @@ import platform
 import string
 import json
 import logging
-import tkinter as tk
+import tkinter as tk #screen resolution
 import pytesseract #Tesseract-OCR wrapper
 import cv2
 import openpyxl #Excel engine
@@ -315,7 +326,8 @@ def get_system_info():
         f'\nOS: {uname.system}\n'
         f'Release: {uname.release}\n'
         f'Version: {uname.version}\n'
-        f'Processor: {platform.processor()}\n'
+        f'Processor: {uname.processor}\n'
+        f'Python: {platform.python_version()}'
     )
 
     return info
@@ -378,13 +390,13 @@ def main():
 
 
     logger = set_up_logger()
+    system_date_time = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) #ISO 8601
     ascii_allowlist = string.printable[:-5] #OpenCV can only print up to <space>
 
     #point pytesseract to tesseract executable
     if platform.system() == 'Windows':
         pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
-    displayed_frame = None
 
     #TODO: move variable assignments out of try-except
     try:
@@ -407,7 +419,8 @@ def main():
         clear_key = ord(args.clear_key)
         duration = args.duration #duration of coordinates on screen, in seconds
         out_dir = get_set_proper_dir(args.out_dir)
-        anno_dir = get_set_proper_dir(args.anno_dir)
+        anno_dir = get_set_proper_dir(args.anno_dir) #create annotated_images folder
+        anno_dir = get_set_proper_dir(anno_dir+system_date_time+'/') #create a_i subfolder
         font = args.font
         font_color = tuple(args.font_color)
         font_scale = args.font_scale
@@ -415,7 +428,6 @@ def main():
 
 
         # Set up spreadsheet file
-        system_date_time = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) #ISO 8601
         outfile_path = out_dir+system_date_time+'.xlsx'
         headers = ['Date', 'Time', 'Coordinates']
         set_up_spreadsheet(outfile_path, headers)
