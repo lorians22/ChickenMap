@@ -25,20 +25,21 @@ No implied support or warranty.
 #   - input validation (after merging with default values?)
 #   - pip install pathvalidate
 # 2) convert string concats to join() where possible for efficiency
-# 3) convert globals to classes: Font, Directory
-# 4) add error logger to except (Logger class?)
+# 3) add error logger to except (Logger class?)
 #   - add try-except to arg_parsing()
-# 5) location-aware text drawing, like how a right-click menu flows up or down from cursor
-# 6) function type hints
-# 7) update code whitespace based on GPSG
-# 8) add GUI (dropdown menus, sanitized text boxes) for options.json5?
-# 9) change ruler to 80 and wrap appropriately
+# 4) location-aware text drawing, like how a right-click menu flows up or down from cursor
+# 5) function type hints
+# 6) update code whitespace based on GPSG
+# 7) add GUI (dropdown menus, sanitized text boxes) for options.json5?
+# 8) change ruler to 80 and wrap appropriately
+# 9) look into GPSG decorators
+# 10) convert to f-strings where possible
 
 # TO DO For someone that isn't me and knows Python UI development:
 #   convert this to use a dedicated UI and keyboard/mouse input library instead of OpenCV?
 
 
-__version__ = '2023.9.3'
+__version__ = '2023.10.1'
 __author__ = 'Logan Orians'
 
 
@@ -49,17 +50,12 @@ import platform
 import string
 import json
 import logging
+import types #for SimpleNamespace
 import tkinter as tk #screen resolution
 import pytesseract #Tesseract-OCR wrapper
 import cv2
 import openpyxl #Excel engine
 #import re
-
-
-class CoordsManager:
-    def __init__(self):
-        self.coords = ()
-        self.coord_start_time = 0
 
 
 class AnnotationManager:
@@ -82,51 +78,34 @@ class AnnotationManager:
         self.timestamp_time = timestamp_time
 
 
-class FontManager:
-    def __init__(self, font, color, scale, thickness):
-        self.font = font
-        self.color = color
-        self.scale = scale
-        self.thickness = thickness
-
-
 class MouseCallbackHandler:
-    def __init__(self):
-        self.coords_manager = CoordsManager()
+    def __init__(self, outfile_path):
+        self.coord = types.SimpleNamespace(coords=(), coord_start_time=0)
         self.anno_manager = AnnotationManager()
+        self.outfile_path = outfile_path
+        self.frame = None
 
     def mouse_input(self, event, x, y, flags, param):
         del flags, param
 
         if not self.anno_manager.typing: #if user *isn't* typing annotation
             if event == cv2.EVENT_LBUTTONDOWN: #left mouse click
-                self.coords_manager.coord_start_time = time.time()
-                self.coords_manager.coords = (x, y)
-                timestamp_date, timestamp_time = get_timestamp()
+                self.coord.coord_start_time = time.time()
+                self.coord.coords = (x, y)
+                timestamp_date, timestamp_time = get_timestamp(self.frame)
 
                 #convert to function
                 data = [timestamp_date, timestamp_time, f'({x}, {y})'] #format data
-                append_to_spreadsheet(outfile_path, data)
+                append_to_spreadsheet(self.outfile_path, data)
 
                 #Print timestamp and coordinates in case .xlsx gets corrupted
                 print(timestamp_date)
                 print(timestamp_time)
-                print(str(self.coords_manager.coords)+'\n')
+                print(str(self.coord.coords)+'\n')
 
             elif event == cv2.EVENT_RBUTTONDOWN: #right mouse click
-                _, timestamp_time = get_timestamp()
+                _, timestamp_time = get_timestamp(self.frame)
                 self.anno_manager.start_typing(x, y, timestamp_time)
-
-
-# Global variables
-# TODO
-frame = None #get_timestamp() needs video frame when mouse is clicked
-outfile_path = ''
-anno_dir = ''
-font = None
-font_color = None
-font_scale = None
-font_thickness = None
 
 
 def get_next_filename(filename):
@@ -149,7 +128,7 @@ def get_next_filename(filename):
     return new_file
 
 
-def get_timestamp():
+def get_timestamp(frame):
     """Gets burnt-in timestamp via OCR (not video timestamp from OpenCV).
     
 
@@ -385,17 +364,8 @@ def set_window_dimensions(cap):
 
 
 def main():
-    global frame
-    global outfile_path
-    global anno_dir
-    global font
-    global font_color
-    global font_scale
-    global font_thickness
+    logger = set_up_logger() #set up main() error logger
 
-
-    mcb_handler = MouseCallbackHandler()
-    logger = set_up_logger()
     system_date_time = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) #ISO 8601
     ascii_allowlist = string.printable[:-5] #OpenCV can only print up to <space>
 
@@ -423,20 +393,22 @@ def main():
         else:
             exit_key = ord(args.exit_key)
         clear_key = ord(args.clear_key)
-        duration = args.duration #duration of coordinates on screen, in seconds
-        out_dir = get_set_proper_dir(args.out_dir)
+        duration = args.duration #duration of coordinates and annotations on screen, in seconds
+        out_dir = get_set_proper_dir(args.out_dir) #create sheets folder
         anno_dir = get_set_proper_dir(args.anno_dir) #create annotated_images folder
         anno_dir = get_set_proper_dir(anno_dir+system_date_time+'/') #create a_i subfolder
-        font = args.font
-        font_color = tuple(args.font_color)
-        font_scale = args.font_scale
-        font_thickness = args.font_thickness
+        font_ns = types.SimpleNamespace(font=args.font, scale=args.font_scale,
+            color=tuple(args.font_color), thickness=args.font_thickness)
 
 
         # Set up spreadsheet file
         outfile_path = out_dir+system_date_time+'.xlsx'
         headers = ['Date', 'Time', 'Coordinates']
         set_up_spreadsheet(outfile_path, headers)
+
+
+        # Initialize MouseCallbackHandler object
+        mcb_handler = MouseCallbackHandler(outfile_path)
 
 
         # Determine delay to play video at normal speed
@@ -458,7 +430,10 @@ def main():
         while cap.isOpened():
             ret, frame = cap.read() #get cap frame-by-frame
             if ret:
-                #get LSByte of keypress for cross-platform compatibility
+                # Pass frame to mcb_handler
+                mcb_handler.frame = frame
+                
+                # Get LSByte of keypress for cross-platform compatibility
                 key_press = cv2.waitKey(delay) & 0xFF
                 if not mcb_handler.anno_manager.typing:
                     if key_press == exit_key: #quit program
@@ -474,16 +449,16 @@ def main():
 
                 # Prevent coords from popping back up after annotation is entered
                 if mcb_handler.anno_manager.typing:
-                    mcb_handler.coords_manager.coords = ()
+                    mcb_handler.coord.coords = ()
 
                 # Only allow deletion of [date, time, coord] when on screen
-                if mcb_handler.coords_manager.coords:
+                if mcb_handler.coord.coords:
                     if key_press == clear_key:
-                        mcb_handler.coords_manager.coords = ()
+                        mcb_handler.coord.coords = ()
                         delete_last_coordinate(outfile_path)
-                    elif (time.time() - mcb_handler.coords_manager.coord_start_time < duration): #on-screen coordinate timeout
-                        cv2.putText(frame, str(mcb_handler.coords_manager.coords), mcb_handler.coords_manager.coords, font, font_scale, font_color,
-                            font_thickness)
+                    elif (time.time() - mcb_handler.coord.coord_start_time < duration): #on-screen coordinate timeout
+                        cv2.putText(frame, str(mcb_handler.coord.coords), mcb_handler.coord.coords,
+                            font_ns.font, font_ns.scale, font_ns.color, font_ns.thickness)
 
                 # This while loop ensures that the video is paused while annotating
                 while mcb_handler.anno_manager.typing:
@@ -491,7 +466,9 @@ def main():
 
                     # Display frame with annotation
                     if mcb_handler.anno_manager.show_anno:
-                        cv2.putText(frame_copy, mcb_handler.anno_manager.anno_text, mcb_handler.anno_manager.anno_pos, font, font_scale, font_color, font_thickness)
+                        cv2.putText(frame_copy, mcb_handler.anno_manager.anno_text,
+                            mcb_handler.anno_manager.anno_pos, font_ns.font, font_ns.scale,
+                            font_ns.color, font_ns.thickness)
                         cv2.imshow(window_name, frame_copy)
 
                     key_press = cv2.waitKey(0) & 0xFF #get LSByte of keypress for cross-platform compatibility
@@ -512,7 +489,9 @@ def main():
                             mcb_handler.anno_manager.show_anno = True
 
                 if mcb_handler.anno_manager.show_anno:
-                    cv2.putText(frame, mcb_handler.anno_manager.anno_text, mcb_handler.anno_manager.anno_pos, font, font_scale, font_color, font_thickness)
+                    cv2.putText(frame, mcb_handler.anno_manager.anno_text,
+                        mcb_handler.anno_manager.anno_pos, font_ns.font,
+                        font_ns.scale, font_ns.color, font_ns.thickness)
 
                 cv2.imshow(window_name, frame) #show video frame
             else:
