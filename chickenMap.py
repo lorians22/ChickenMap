@@ -25,7 +25,7 @@ No implied support or warranty.
 #   - input validation (after merging with default values?)
 #   - pip install pathvalidate
 # 2) convert string concats to join() where possible for efficiency
-# 3) convert globals to classes: Font, Directory, MouseCallback
+# 3) convert globals to classes: Font, Directory
 # 4) add error logger to except (Logger class?)
 #   - add try-except to arg_parsing()
 # 5) location-aware text drawing, like how a right-click menu flows up or down from cursor
@@ -56,6 +56,12 @@ import openpyxl #Excel engine
 #import re
 
 
+class CoordsManager:
+    def __init__(self):
+        self.coords = ()
+        self.coord_start_time = 0
+
+
 class AnnotationManager:
     def __init__(self):
         self.anno_text = ''
@@ -76,50 +82,51 @@ class AnnotationManager:
         self.timestamp_time = timestamp_time
 
 
+class FontManager:
+    def __init__(self, font, color, scale, thickness):
+        self.font = font
+        self.color = color
+        self.scale = scale
+        self.thickness = thickness
+
+
+class MouseCallbackHandler:
+    def __init__(self):
+        self.coords_manager = CoordsManager()
+        self.anno_manager = AnnotationManager()
+
+    def mouse_input(self, event, x, y, flags, param):
+        del flags, param
+
+        if not self.anno_manager.typing: #if user *isn't* typing annotation
+            if event == cv2.EVENT_LBUTTONDOWN: #left mouse click
+                self.coords_manager.coord_start_time = time.time()
+                self.coords_manager.coords = (x, y)
+                timestamp_date, timestamp_time = get_timestamp()
+
+                #convert to function
+                data = [timestamp_date, timestamp_time, f'({x}, {y})'] #format data
+                append_to_spreadsheet(outfile_path, data)
+
+                #Print timestamp and coordinates in case .xlsx gets corrupted
+                print(timestamp_date)
+                print(timestamp_time)
+                print(str(self.coords_manager.coords)+'\n')
+
+            elif event == cv2.EVENT_RBUTTONDOWN: #right mouse click
+                _, timestamp_time = get_timestamp()
+                self.anno_manager.start_typing(x, y, timestamp_time)
+
+
 # Global variables
 # TODO
 frame = None #get_timestamp() needs video frame when mouse is clicked
-coords = () #need to get coords from mouse_callback, but mouse_callback doesn't "return"
 outfile_path = ''
 anno_dir = ''
-coord_start_time = 0
 font = None
 font_color = None
 font_scale = None
 font_thickness = None
-annotation_manager = AnnotationManager()
-
-
-def mouse_callback(event, x, y, flags, param):
-    """
-    Runs when mouse input is received on the video window. Gets coordinate from mouse input and
-    video timestamp via OCR.
-    """
-
-    del flags, param
-
-    global coords
-    global coord_start_time
-    global annotation_manager
-
-    if not annotation_manager.typing: #if user *isn't* creating annotation
-        if event == cv2.EVENT_LBUTTONDOWN: #left mouse click
-            coord_start_time = time.time()
-            coords = (x, y)
-            timestamp_date, timestamp_time = get_timestamp()
-
-            #convert to function
-            data = [timestamp_date, timestamp_time, f'({x}, {y})'] #format data
-            append_to_spreadsheet(outfile_path, data)
-
-            #Print timestamp and coordinates in case .xlsx gets corrupted
-            print(timestamp_date)
-            print(timestamp_time)
-            print(str(coords)+'\n')
-
-        elif event == cv2.EVENT_RBUTTONDOWN: #right mouse click
-            _, timestamp_time = get_timestamp()
-            annotation_manager.start_typing(x, y, timestamp_time)     
 
 
 def get_next_filename(filename):
@@ -234,7 +241,7 @@ def delete_last_coordinate(outfile_path):
 
 
 def arg_parsing():
-    """Parses input arguments. Because it's long, separate function encapsulates it from main().
+    """Parses input arguments; separate from main() because it's long.
 
     Returns:
         parser.parse_args() (argparse.Namespace): object containing inputted command line arguments
@@ -379,16 +386,15 @@ def set_window_dimensions(cap):
 
 def main():
     global frame
-    global coords
     global outfile_path
     global anno_dir
     global font
     global font_color
     global font_scale
     global font_thickness
-    global annotation_manager
 
 
+    mcb_handler = MouseCallbackHandler()
     logger = set_up_logger()
     system_date_time = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) #ISO 8601
     ascii_allowlist = string.printable[:-5] #OpenCV can only print up to <space>
@@ -446,7 +452,7 @@ def main():
         window_name = 'Video'
         cv2.namedWindow(window_name, cv2.WINDOW_NORMAL) #create named window to display cap
         cv2.resizeWindow(window_name, width=window_width, height=window_height)
-        cv2.setMouseCallback(window_name, mouse_callback)
+        cv2.setMouseCallback(window_name, mcb_handler.mouse_input)
 
 
         while cap.isOpened():
@@ -454,59 +460,59 @@ def main():
             if ret:
                 #get LSByte of keypress for cross-platform compatibility
                 key_press = cv2.waitKey(delay) & 0xFF
-                if not annotation_manager.typing:
+                if not mcb_handler.anno_manager.typing:
                     if key_press == exit_key: #quit program
                         break
-                    if annotation_manager.write_anno:
-                        annotation_manager.write_anno = False
-                        filename = anno_dir+annotation_manager.timestamp_time.replace(':', '-')+'.jpg'
+                    if mcb_handler.anno_manager.write_anno:
+                        mcb_handler.anno_manager.write_anno = False
+                        filename = anno_dir+mcb_handler.anno_manager.timestamp_time.replace(':', '-')+'.jpg'
                         anno_filename = get_next_filename(filename) #makes sure not to overwrite image
                         cv2.imwrite(anno_filename, frame_copy)
-                    if time.time() - annotation_manager.enter_time > duration:
-                        annotation_manager.show_anno = False
-                        annotation_manager.anno_text = ''
+                    if time.time() - mcb_handler.anno_manager.enter_time > duration:
+                        mcb_handler.anno_manager.show_anno = False
+                        mcb_handler.anno_manager.anno_text = ''
 
                 # Prevent coords from popping back up after annotation is entered
-                if annotation_manager.typing:
-                    coords = ()
+                if mcb_handler.anno_manager.typing:
+                    mcb_handler.coords_manager.coords = ()
 
                 # Only allow deletion of [date, time, coord] when on screen
-                if coords:
+                if mcb_handler.coords_manager.coords:
                     if key_press == clear_key:
-                        coords = ()
+                        mcb_handler.coords_manager.coords = ()
                         delete_last_coordinate(outfile_path)
-                    elif (time.time() - coord_start_time < duration): #on-screen coordinate timeout
-                        cv2.putText(frame, str(coords), coords, font, font_scale, font_color,
+                    elif (time.time() - mcb_handler.coords_manager.coord_start_time < duration): #on-screen coordinate timeout
+                        cv2.putText(frame, str(mcb_handler.coords_manager.coords), mcb_handler.coords_manager.coords, font, font_scale, font_color,
                             font_thickness)
 
                 # This while loop ensures that the video is paused while annotating
-                while annotation_manager.typing:
+                while mcb_handler.anno_manager.typing:
                     frame_copy = frame.copy() #get copy of frame so backspace works
 
                     # Display frame with annotation
-                    if annotation_manager.show_anno:
-                        cv2.putText(frame_copy, annotation_manager.anno_text, annotation_manager.anno_pos, font, font_scale, font_color, font_thickness)
+                    if mcb_handler.anno_manager.show_anno:
+                        cv2.putText(frame_copy, mcb_handler.anno_manager.anno_text, mcb_handler.anno_manager.anno_pos, font, font_scale, font_color, font_thickness)
                         cv2.imshow(window_name, frame_copy)
 
                     key_press = cv2.waitKey(0) & 0xFF #get LSByte of keypress for cross-platform compatibility
                     if key_press != 255:
                         if key_press == 13: #Enter
-                            annotation_manager.typing = False
-                            annotation_manager.write_anno = True
-                            annotation_manager.enter_time = time.time()
+                            mcb_handler.anno_manager.typing = False
+                            mcb_handler.anno_manager.write_anno = True
+                            mcb_handler.anno_manager.enter_time = time.time()
                         elif key_press == 27: #Esc
-                            annotation_manager.typing = False
-                            annotation_manager.show_anno = False
-                            annotation_manager.anno_text = ''
+                            mcb_handler.anno_manager.typing = False
+                            mcb_handler.anno_manager.show_anno = False
+                            mcb_handler.anno_manager.anno_text = ''
                         elif key_press == 8: #Backspace
-                            if annotation_manager.anno_text: #DON'T COMBINE INTO ^ELIF
-                                annotation_manager.anno_text = annotation_manager.anno_text[:-1]
+                            if mcb_handler.anno_manager.anno_text: #DON'T COMBINE INTO ^ELIF
+                                mcb_handler.anno_manager.anno_text = mcb_handler.anno_manager.anno_text[:-1]
                         elif chr(key_press) in ascii_allowlist: #printable ascii chars
-                            annotation_manager.anno_text += chr(key_press)
-                            annotation_manager.show_anno = True
+                            mcb_handler.anno_manager.anno_text += chr(key_press)
+                            mcb_handler.anno_manager.show_anno = True
 
-                if annotation_manager.show_anno:
-                    cv2.putText(frame, annotation_manager.anno_text, annotation_manager.anno_pos, font, font_scale, font_color, font_thickness)
+                if mcb_handler.anno_manager.show_anno:
+                    cv2.putText(frame, mcb_handler.anno_manager.anno_text, mcb_handler.anno_manager.anno_pos, font, font_scale, font_color, font_thickness)
 
                 cv2.imshow(window_name, frame) #show video frame
             else:
