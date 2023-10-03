@@ -42,7 +42,7 @@ A 2D coordinate mapping program for monitoring the location of chickens.
 
 [Development](#development)
 
-    [Decisions/Q&A](#decisionsqa)
+    [Decisions](#decisions)
 
     [Style and Formatting](#style-and-formatting)
 
@@ -281,8 +281,6 @@ For non-guaranteed support, email me at logan.orians@gmail.com or message me on 
 **Q:** Why didn't you use a proper UI library or toolkit?
 
 **A:** I don't have experience with UIs in Python, but I have experience with OpenCV. OpenCV was able to do what I needed.
-
-
 
 ### Style and Formatting
 
