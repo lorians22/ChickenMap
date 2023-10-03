@@ -42,13 +42,13 @@ A 2D coordinate mapping program for monitoring the location of chickens.
 
 [Development](#development)
 
+    [Decisions/Q&A](#decisionsqa)
+
     [Style and Formatting](#style-and-formatting)
 
     [Tools Used](#tools-used)
 
 [License](#license)
-
- 
 
 ## Key knowledge
 
@@ -71,8 +71,6 @@ A 2D coordinate mapping program for monitoring the location of chickens.
 - To paste into a Terminal, right-click.
 
 - To re-run a previous command, navigate between them using the up and down arrow keys, then press Enter.
-
- 
 
 ## Prerequisites
 
@@ -100,11 +98,9 @@ Python 3.x (tested with 3.8, 3.11). Download the latest for your system [here](h
 
 ![Add python.exe to PATH](./pythonPath.png)
 
-
-
 * At the end, you have the option to *Disable path length limit*. While not necessary for this program, it's a good idea to click that option.
 
-* After installation, verify that Python and pip are installed in a command prompt/Terminal:
+* After installation, verify that Python3 and pip3 are installed in a command prompt/Terminal:
   
   ```bash
   py --version
@@ -112,8 +108,6 @@ Python 3.x (tested with 3.8, 3.11). Download the latest for your system [here](h
   ```
 
         If both respond with a version number, you're good to go.
-
- 
 
 ## Installation
 
@@ -143,8 +137,6 @@ These can be installed automatically by opening a command prompt/Terminal, navig
   pip install -r requirements.txt
 ```
 
- 
-
 ## How To Use
 
 - Press `q` to quit the program. Clicking the X (Windows) or red dot (MacOS) will just replace the video with another window.
@@ -163,13 +155,11 @@ These can be installed automatically by opening a command prompt/Terminal, navig
     
     - Press `Enter` to save the annotated image and resume the video.
     
-    - Press `Esc` to exit without saving the annotated image and resume the video.
+    - Press `Esc` to cancel annotating and resume the video.
     
     - Annotations will stay on screen for 5 seconds by default.
   
   - Annotated images are saved in the `annotated_images/<timestamp>` directory, where `<timestamp>` is the system date/time when you ran the program. You can find these .jpg files in the `ChickenMap-main/` folder. Filenames are based on the timestamp in the top-left corner of the video; annotations at the same timestamp are given a `_#` suffix to prevent overwriting.
-
- 
 
 ## Usage
 
@@ -234,8 +224,6 @@ Set the exit key to `Esc` and the duration of on-screen coordinates and annotati
 py chickenMap.py test.mp4 -e Esc -d 2
 ```
 
- 
-
 ## Compatibility
 
 Tested with:
@@ -274,34 +262,37 @@ Tested with:
     
     - openpyxl 3.1.2
 
-
-
 ## Privacy
 
 This program does not store or transmit any user data to an external source and can run without connection to the Internet. Your OS/platform (Windows, MacOS) is determined at runtime to point `pytesseract` to the Tesseract-OCR executable on Windows, and it is not stored after the program exits. Program errors and platform info (OS version, Python version, processor name) are stored in `error_log.txt` and are not transmitted by this program; if you have errors, see [Support](#support).
-
-
 
 ## Support
 
 For non-guaranteed support, email me at logan.orians@gmail.com or message me on [Discord](https://discord.com/users/l_orians). Please attach `error_log.txt` to your message and describe what you were doing when the error occurred.
 
-
-
 ## Development
+
+### Decisions
+
+**Q:** Why did you make the mouse callback function for OpenCV a function in an object/class? Couldn't you have just defined the mouse callback in `main()`?
+
+**A:** Sure, but I would still need global variables for coordinates and annotations, as`cv2.setMouseCallback()` doesn't allow the callback function to return anything. I wanted to avoid using global variables (where possible) because it was getting messy, so I needed coordinate and annotation classes. By putting those objects with the mouse_callback function in a class, I could significantly reduce the number of global variables and local/global namespace conflicts I tended to miss when debugging.
+
+**Q:** Why didn't you use a proper UI library or toolkit?
+
+**A:** I don't have experience with UIs in Python, but I have experience with OpenCV. OpenCV was able to do what I needed.
+
+
 
 ### Style and Formatting
 
-This code attempts to follow both [PEP 8](https://peps.python.org/pep-0008/) and the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html), with programmer's freedom on conflicting elements.
+This code attempts to follow both [PEP 8](https://peps.python.org/pep-0008/) and the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html), with programmer's freedom on conflicting elements, and line width set to 100, not 80, characters because it's 2023 and we have high-resolution and ultrawide monitors.
 
 ### Tools Used
 
 - [Sublime Text 4](https://www.sublimetext.com/), [Notepad++](https://notepad-plus-plus.org/) and [VSCode](https://code.visualstudio.com/) for text editing and programming
 
 - [MarkText](https://www.marktext.cc/) for README editing
-
-
-
 
 ## License
 
