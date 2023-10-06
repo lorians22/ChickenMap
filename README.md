@@ -44,7 +44,7 @@ Version 2023.10.2
 
 [Development](#development)
 
-    [Style and Formatting](#style-and-formatting)
+    [Style and Formatting](#style-and-formatting)
 
     [Decisions](#decisions-nerd-questions)
 
@@ -105,7 +105,7 @@ Python 3.x (tested with 3.8, 3.11). Download the latest for your system [here](h
 * After installation, verify that Python3 and pip3 are installed in a command prompt/Terminal:
   
   ```bash
-  py --version
+  python3 --version
   pip3 --version
   ```
 
@@ -136,7 +136,7 @@ These can be installed automatically by opening a command prompt/Terminal, navig
 
 ```bash
   cd ~/Downloads/ChickenMap-main
-  pip install -r requirements.txt
+  pip3 install -r requirements.txt
 ```
 
 ## How To Use
@@ -168,14 +168,14 @@ These can be installed automatically by opening a command prompt/Terminal, navig
 See [Examples](#examples) for platform-specific instructions (what you should actually type into the command line). `VIDEO_PATH` is a required argument; arguments encapsulated by brackets are optional.
 
 ```bash
-py chickenMap.py VIDEO_PATH [out_dir] [anno_dir] [exit_key] \
+python3 chickenMap.py VIDEO_PATH [out_dir] [anno_dir] [exit_key] \
     [clear_key] [duration]
 ```
 
 You can view command-line options by typing:
 
 ```bash
-py chickenMap.py -h
+python3 chickenMap.py -h
 ```
 
 | Short Argument | Long Argument | Description                                                    | Default           |
@@ -196,10 +196,10 @@ In a new command prompt:
 
 ```bash
 cd %USERPROFILE%\Downloads\ChickenMap-main\ChickenMap-main
-py chickenMap.py VIDEO_PATH
+python3 chickenMap.py test.mp4
 ```
 
-`VIDEO_PATH` should not be typed out; it should be the filename of the video you want to play. You can drag a video file from File Explorer into the command prompt window and press enter to run the program; this makes it easy if your video is stored on an external hard drive. Just make sure to add a space after `py chickenMap.py` before dragging a video file into the window.
+Replace `test.mp4` with the filename of the video you want to play. You can drag a video file from File Explorer into the command prompt window and press enter to run the program; this makes it easy if your video is stored on an external hard drive. Just make sure to add a space after `py chickenMap.py` before dragging a video file into the window.
 
 ### MacOS
 
@@ -207,23 +207,23 @@ In a new Terminal:
 
 ```bash
 cd ~/Downloads/ChickenMap-main
-python chickenMap.py VIDEO_PATH
+python3 chickenMap.py VIDEO_PATH
 ```
 
-`VIDEO_PATH` should not be typed out; it should be the filename of the video you want to play. You can drag a video file from Finder into the Terminal window and press enter to run the program; this makes it easy if your video is stored on an external hard drive. Just make sure to add a space after `python chickenMap.py` before dragging a video file into the window.
+Replace `test.mp4` with the filename of the video you want to play. You can drag a video file from Finder into the Terminal window and press enter to run the program; this makes it easy if your video is stored on an external hard drive. Just make sure to add a space after `python chickenMap.py` before dragging a video file into the window.
 
 ### Examples
 
 Basic, uses the options in `options.json5`:
 
 ```bash
-py chickenMap.py test.mp4
+python3 chickenMap.py test.mp4
 ```
 
 Set the exit key to `Esc` and the duration of on-screen coordinates and annotations to 2 seconds, with the other options being filled in from `options.json5`:
 
 ```bash
-py chickenMap.py test.mp4 -e Esc -d 2
+python3 chickenMap.py test.mp4 -e Esc -d 2
 ```
 
 ## Compatibility
