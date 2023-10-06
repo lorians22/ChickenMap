@@ -36,7 +36,7 @@ No implied support or warranty.
 #   convert this to use a dedicated UI and keyboard/mouse input library instead of OpenCV?
 
 
-__version__ = '2023.10.3'
+__version__ = '2023.10.2'
 __author__ = 'Logan Orians'
 
 
@@ -480,80 +480,91 @@ def main():
 
         cv2.setMouseCallback(window_name, mouse_input)
 
+        frame = None
+        def mouse_input(event, x, y, flags, param):
+            del flags, param # Unused.
+
+            if not anno.typing: #if user *isn't* typing annotation
+                if event == cv2.EVENT_LBUTTONDOWN: #left mouse click
+                    coord.start_time = time.time()
+                    coord.xy = (x, y)
+                    timestamp_date, timestamp_time = get_timestamp(frame)
+
+                    data = [timestamp_date, timestamp_time, f"({x}, {y})"] #format data
+                    sheet.append_to_spreadsheet(data)
+
+                    # Print timestamp and coordinates in case .xlsx gets corrupted
+                    print(timestamp_date)
+                    print(timestamp_time)
+                    print(f"{str(coord.xy)}\n")
+
+                elif event == cv2.EVENT_RBUTTONDOWN: #right mouse click
+                    _, timestamp_time = get_timestamp(frame)
+                    anno.start_typing(x, y, timestamp_time)
+
+        cv2.setMouseCallback(window_name, mouse_input)
+
         paused = False
         pause_key = ord('p')
 
         while cap.isOpened():
-            if not paused:
-                ret, frame = cap.read() #get cap frame-by-frame
-                if not ret: break
+            ret, frame = cap.read() #get cap frame-by-frame
+            if ret:
                 
-            # Get LSByte of keypress for cross-platform compatibility
-            key_press = cv2.waitKey(delay) & 0xFF
-            if not anno.typing:
-                if key_press == exit_key: #quit program
-                    break
-                if key_press == pause_key:
-                    paused = not paused #toggle paused
-                if anno.write_anno:
-                    anno.write_anno = False
-                    cv2.imwrite(str(anno), frame_copy)
-                if time.time() - anno.enter_time > duration:
-                    anno.show_anno = False
-                    anno.anno_text = ''
+                # Get LSByte of keypress for cross-platform compatibility
+                key_press = cv2.waitKey(delay) & 0xFF
+                if not anno.typing:
+                    if key_press == exit_key: #quit program
+                        break
+                    if anno.write_anno:
+                        anno.write_anno = False
+                        cv2.imwrite(str(anno), frame_copy)
+                    if time.time() - anno.enter_time > duration:
+                        anno.show_anno = False
+                        anno.anno_text = ''
 
-            # Prevent coords from popping back up after annotation is entered
-            if anno.typing:
-                coord.xy = ()
-
-            # Only allow deletion of [date, time, coord] when on screen
-            if coord.xy:
-                frame_copy = frame.copy() #get copy of frame so clearing looks better
-                if key_press == clear_key:
+                # Prevent coords from popping back up after annotation is entered
+                if anno.typing:
                     coord.xy = ()
-                    sheet.delete_last_coordinate()
-                elif (time.time() - coord.start_time < duration): #on-screen coordinate timeout
-                    if paused:
-                        cv2.putText(frame_copy, str(coord.xy), coord.xy,
-                            font.font, font.scale, font.color, font.thickness)
-                    else:
+
+                # Only allow deletion of [date, time, coord] when on screen
+                if coord.xy:
+                    if key_press == clear_key:
+                        coord.xy = ()
+                        sheet.delete_last_coordinate()
+                    elif (time.time() - coord.start_time < duration): #on-screen coordinate timeout
                         cv2.putText(frame, str(coord.xy), coord.xy,
                             font.font, font.scale, font.color, font.thickness)
 
-            # This while loop ensures that the video is paused while annotating
-            while anno.typing:
-                frame_copy = frame.copy() #get copy of frame so backspace works
+                # This while loop ensures that the video is paused while annotating
+                while anno.typing:
+                    frame_copy = frame.copy() #get copy of frame so backspace works
 
-                # Display frame with annotation
+                    # Display frame with annotation
+                    if anno.show_anno:
+                        cv2.putText(frame_copy, anno.anno_text,
+                            anno.anno_pos, font.font, font.scale,
+                            font.color, font.thickness)
+                        cv2.imshow(window_name, frame_copy)
+
+                    key_press = cv2.waitKey(0) & 0xFF #get LSByte of keypress for cross-platform compatibility
+                    if key_press != 255:
+                        if key_press == 13: #Enter
+                            anno.typing = False
+                            anno.write_anno = True
+                            anno.enter_time = time.time()
+                        elif key_press == 27: #Esc
+                            anno.typing = False
+                            anno.show_anno = False
+                            anno.anno_text = ''
+                        elif key_press == 8: #Backspace
+                            if anno.anno_text: #DON'T COMBINE INTO ^ELIF
+                                anno.anno_text = anno.anno_text[:-1]
+                        elif chr(key_press) in ascii_allowlist: #printable ascii chars
+                            anno.anno_text += chr(key_press)
+                            anno.show_anno = True
+
                 if anno.show_anno:
-                    cv2.putText(frame_copy, anno.anno_text,
-                        anno.anno_pos, font.font, font.scale,
-                        font.color, font.thickness)
-                    cv2.imshow(window_name, frame_copy)
-
-                key_press = cv2.waitKey(0) & 0xFF #get LSByte of keypress for cross-platform compatibility
-                if key_press != 255:
-                    if key_press == 13: #Enter
-                        anno.typing = False
-                        anno.write_anno = True
-                        anno.enter_time = time.time()
-                    elif key_press == 27: #Esc
-                        anno.typing = False
-                        anno.show_anno = False
-                        anno.anno_text = ''
-                    elif key_press == 8: #Backspace
-                        if anno.anno_text: #DON'T COMBINE INTO ^ELIF
-                            anno.anno_text = anno.anno_text[:-1]
-                    elif chr(key_press) in ascii_allowlist: #printable ascii chars
-                        anno.anno_text += chr(key_press)
-                        anno.show_anno = True
-
-            if anno.show_anno:
-                if paused:
-                    cv2.putText(frame_copy, anno.anno_text,
-                        anno.anno_pos, font.font,
-                        font.scale, font.color, font.thickness)
-                else:
                     cv2.putText(frame, anno.anno_text,
                         anno.anno_pos, font.font,
                         font.scale, font.color, font.thickness)

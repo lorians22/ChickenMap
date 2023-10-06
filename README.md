@@ -2,7 +2,7 @@
 
 A 2D coordinate mapping program for monitoring the location of chickens.
 
-Version 2023.10.3
+Version 2023.10.2
 
 ## Table of Contents
 
@@ -50,7 +50,33 @@ Version 2023.10.3
   
   - [Tools Used](#tools-used)
 
-- [License](#license)
+    [MacOS](#macos-2)
+
+[How to Use](#how-to-use)
+
+[Usage](#usage)
+
+    [Windows](#windows-3)
+
+    [MacOS](#macos-3)
+
+    [Examples](#examples)
+
+[Compatibility](#compatibility)
+
+[Privacy](#privacy)
+
+[Support](#support)
+
+[Development](#development)
+
+    [Style and Formatting](#style-and-formatting)
+
+    [Decisions](#decisions-nerd-questions)
+
+    [Tools Used](#tools-used)
+
+[License](#license)
 
 ## Key knowledge
 
@@ -305,13 +331,13 @@ For non-guaranteed support, email me at logan.orians@gmail.com or message me on 
 
 ### Style and Formatting
 
-This code attempts to follow both [PEP 8](https://peps.python.org/pep-0008/) and the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html), with programmer's freedom on conflicting elements, and line width set to 100 characters (not 80) because it's 2023 and we have high-resolution and ultrawide monitors.
+This code attempts to follow both [PEP 8](https://peps.python.org/pep-0008/) and the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html), with programmer's freedom on conflicting elements, and line width set to 100, not 80, characters because it's 2023 and we have high-resolution and ultrawide monitors.
 
 ## Decisions (Nerd Questions)
 
 **Q:** Why did you define the mouse callback function as a nested function in `main()`? In previous versions, it was a method of the `MouseCallbackHandler` class. And why did you need it as an instance method before?
 
-**A:** My understanding was that nested functions have *read-only* access to variables in the enclosing scope. While this is true for variables, I determined (through testing) that it does not apply to attributes of a class instance or `SimpleNamespace`. So, I was able to define `mouse_input()` in main, reducing the need for a class. I had the callback function in a class before because it has no return statement and I needed to get `x` and `y` from it.
+**A:** My understanding was that nested functions have *read-only* access to variables in the enclosing scope. While this is true for variables, I determined (through testing) that it does not apply to attributes of a class instance or `SimpleNamespace`. So, I was able to define `mouse_input()` in main, reducing the need for a class. I had the callback function in a class before because I needed to get `x` and `y` from it, and it has with no return statement.
 
 **Q**: Why did you make a coord a `SimpleNamespace`?
 
