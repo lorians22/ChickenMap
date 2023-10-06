@@ -2,6 +2,8 @@
 
 A 2D coordinate mapping program for monitoring the location of chickens.
 
+Version 2023.10.2
+
 ## Table of Contents
 
 [Key Knowledge](#key-knowledge)
@@ -42,9 +44,9 @@ A 2D coordinate mapping program for monitoring the location of chickens.
 
 [Development](#development)
 
-    [Decisions](#decisions)
+    [Style and Formatting](#style-and-formatting)
 
-    [Style and Formatting](#style-and-formatting)
+    [Decisions](#decisions-nerd-questions)
 
     [Tools Used](#tools-used)
 
@@ -272,19 +274,23 @@ For non-guaranteed support, email me at logan.orians@gmail.com or message me on 
 
 ## Development
 
-### Decisions
-
-**Q:** Why did you make the mouse callback function for OpenCV a function in an object/class? Couldn't you have just defined the mouse callback in `main()`?
-
-**A:** Sure, but I would still need global variables for coordinates and annotations, as`cv2.setMouseCallback()` doesn't allow the callback function to return anything. I wanted to avoid using global variables (where possible) because it was getting messy, so I needed coordinate and annotation classes. By putting those objects with the mouse_callback function in a class, I could significantly reduce the number of global variables and local/global namespace conflicts I tended to miss when debugging.
-
-**Q:** Why didn't you use a proper UI library or toolkit?
-
-**A:** I don't have experience with UIs in Python, but I have experience with OpenCV. OpenCV was able to do what I needed.
-
 ### Style and Formatting
 
 This code attempts to follow both [PEP 8](https://peps.python.org/pep-0008/) and the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html), with programmer's freedom on conflicting elements, and line width set to 100, not 80, characters because it's 2023 and we have high-resolution and ultrawide monitors.
+
+## Decisions (Nerd Questions)
+
+**Q:** Why did you define the mouse callback function as a nested function in `main()`? In previous versions, it was a method of the `MouseCallbackHandler` class. And why did you need it as an instance method before?
+
+**A:** My understanding was that nested functions have *read-only* access to variables in the enclosing scope. While this is true for variables, I determined (through testing) that it does not apply to attributes of a class instance or `SimpleNamespace`. So, I was able to define `mouse_input()` in main, reducing the need for a class. I had the callback function in a class before because I needed to get `x` and `y` from it, and it has with no return statement.
+
+**Q**: Why did you make a coord a `SimpleNamespace`?
+
+**A**: At one point, it was a class or part of a class. Making it a `SimpleNamespace` allowed me to reuse the `.attribute` notation in my code, saving me time.
+
+**Q:** Why didn't you use a proper UI library or toolkit?
+
+**A:** I didn't have experience with UIs in Python, but I had experience with OpenCV. OpenCV was able to do what I needed.
 
 ### Tools Used
 
