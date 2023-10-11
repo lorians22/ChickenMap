@@ -2,53 +2,55 @@
 
 A 2D coordinate mapping program for monitoring the location of chickens.
 
+Version 2023.10.3
+
 ## Table of Contents
 
-[Key Knowledge](#key-knowledge)
+- [Key Knowledge](#key-knowledge)
+  
+  - [Windows](#windows)
+  
+  - [MacOS](#macos)
 
-    [Windows](#windows)
+- [Prerequisites](#prerequisites)
+  
+  - [Windows](#windows-1)
+  
+  - [MacOS](#macos-1)
 
-    [MacOS](#macos)
+- [Installation](#installation)
+  
+  - [Windows](#windows-2)
+  
+  - [MacOS](#macos-2)
 
-[Prerequisites](#prerequisites)
+- [How to Use](#how-to-use)
+  
+  - [Instructions](#instructions)
 
-    [Windows](#windows-1)
+- [Usage](#usage)
+  
+  - [Windows](#windows-3)
+  
+  - [MacOS](#macos-3)
+  
+  - [Examples](#examples)
 
-    [MacOS](#macos-1)
+- [Compatibility](#compatibility)
 
-    [Both](#both)
+- [Privacy](#privacy)
 
-[Installation](#installation)
+- [Support](#support)
 
-    [Windows](#windows-2)
+- [Development](#development)
+  
+  - [Style and Formatting](#style-and-formatting)
+  
+  - [Decisions](#decisions-nerd-questions)
+  
+  - [Tools Used](#tools-used)
 
-    [MacOS](#macos-2)
-
-[How to Use](#how-to-use)
-
-[Usage](#usage)
-
-    [Windows](#windows-3)
-
-    [MacOS](#macos-3)
-
-    [Examples](#examples)
-
-[Compatibility](#compatibility)
-
-[Privacy](#privacy)
-
-[Support](#support)
-
-[Development](#development)
-
-    [Decisions](#decisions)
-
-    [Style and Formatting](#style-and-formatting)
-
-    [Tools Used](#tools-used)
-
-[License](#license)
+- [License](#license)
 
 ## Key knowledge
 
@@ -62,6 +64,8 @@ A 2D coordinate mapping program for monitoring the location of chickens.
 
 - To re-run a previous command, navigate between them using the up and down arrow keys, then press Enter.
 
+- If you have any issues with commands not being recognized after installing Python, Tesseract, or packages using `pip3`, close all command prompt windows and open a new one.
+
 ### MacOS
 
 - To open a Terminal, press Cmd + space, type *terminal*, and press Return/Enter.
@@ -72,46 +76,55 @@ A 2D coordinate mapping program for monitoring the location of chickens.
 
 - To re-run a previous command, navigate between them using the up and down arrow keys, then press Enter.
 
+- If you have any issues with commands not being recognized after installing Python, Tesseract, or packages using `pip3`, close all Terminals and open a new one.
+
 ## Prerequisites
 
 ### Windows
 
-Tesseract 5.x. (tested with 5.3.1). Download the latest [here for Windows](https://digi.bib.uni-mannheim.de/tesseract/tesseract-ocr-w64-setup-5.3.1.20230401.exe) and install.
+- Tesseract 5.x. (tested with 5.3.1). Download the latest [here for Windows](https://digi.bib.uni-mannheim.de/tesseract/tesseract-ocr-w64-setup-5.3.1.20230401.exe) and install.
+
+- Python 3.8+ (tested with 3.8, 3.11, 3.12). Download the latest for your system [here](https://www.python.org/downloads/).
+  
+  - On Windows, when installing, make sure to check the *Add python.exe to PATH* box, then click *Install Now*. At the end, you'll have the option to *Disable path length limit*. While not necessary for this program, it's a good idea to click that option.
+    
+    ![Add python.exe to PATH](./pythonPath.png)
+  
+  - After installation, if another command prompt window pops up and the characters to the left are `>>>`, close out of that command prompt. Then, verify that Python3 and pip3 are installed in a normal command prompt, which starts with `C:\`. If both respond with a version number, you're good to go:
+    
+    ```bash
+    py --version
+    pip3 --version
+    ```
 
 ### MacOS
 
-Tesseract 5.x (tested with 5.3.2). First, install homebrew if not already installed:
-
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-```
-
-and then install Tesseract:
-
-```bash
-brew install tesseract -y
-```
-
-### Both
-
-Python 3.x (tested with 3.8, 3.11). Download the latest for your system [here](https://www.python.org/downloads/). On Windows, when installing, make sure to check the *Add python.exe to PATH* box, then click *Install Now*.
-
-![Add python.exe to PATH](./pythonPath.png)
-
-* At the end, you have the option to *Disable path length limit*. While not necessary for this program, it's a good idea to click that option.
-
-* After installation, verify that Python3 and pip3 are installed in a command prompt/Terminal:
+- Tesseract 5.x (tested with 5.3.2).
   
-  ```bash
-  py --version
-  pip3 --version
-  ```
+  - First, install homebrew if not already installed (you probably don't have it):
+    
+    ```bash
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    ```
+  
+  - Then install Tesseract:
+    
+    ```bash
+    brew install tesseract
+    ```
 
-        If both respond with a version number, you're good to go.
+- Python 3.8+ (tested with 3.8, 3.11, 3.12). Download the latest for your system [here](https://www.python.org/downloads/).
+  
+  - After installation, verify that Python3 and pip3 are installed in a Terminal. If both respond with a version number, you're good to go:
+    
+    ```bash
+    python3 --version
+    pip3 --version
+    ```
 
 ## Installation
 
-Download a [zip](https://github.com/lorians22/ChickenMap/archive/refs/heads/main.zip) of this code, then extract. Required Python libraries for this program:
+[Download a zip](https://github.com/lorians22/ChickenMap/archive/refs/heads/main.zip) of this code, then extract. Required Python libraries for this program:
 
 - OpenCV-Python
 
@@ -121,7 +134,7 @@ Download a [zip](https://github.com/lorians22/ChickenMap/archive/refs/heads/main
 
 - openpyxl
 
-These can be installed automatically by opening a command prompt/Terminal, navigating to the folder, and using `pip` to read the requirements file:
+These can be installed automatically by opening a command prompt/Terminal, navigating to the folder, and using `pip3` to read the requirements file:
 
 ### Windows
 
@@ -133,13 +146,29 @@ These can be installed automatically by opening a command prompt/Terminal, navig
 ### MacOS
 
 ```bash
-  cd ~/Desktop/ChickenMap-main
-  pip install -r requirements.txt
+  cd ~/Downloads/ChickenMap-main
+  pip3 install -r requirements.txt
 ```
 
 ## How To Use
 
-- Press `q` to quit the program. Clicking the X (Windows) or red dot (MacOS) will just replace the video with another window.
+Overly-detailed command line usage can be found under [Usage](#usage). They might confuse you in their current state, so feel free to ignore. To test things out, if you don't already have a command prompt/Terminal open and navigated to the ChickenMap folder, do so:
+
+    Windows: `cd %USERPROFILE%\Downloads\ChickenMap-main\ChickenMap-main`
+
+    MacOS:     `cd ~/Downloads/ChickenMap-main`
+
+Then, run the program with the provided test video:
+
+    Windows: `py chickenMap.py test.mp4`
+
+    MacOS:     `python3 chickenMap.py test.mp4`
+
+### Instructions
+
+- Press `q` to quit the program. Clicking the X in the corner (on Windows) will just replace the video with another window.
+
+- Press `p` to pause the video. Press `p` again to resume. The video is automatically paused while annotating but will resume once `Enter` is pressed, unless you pressed `p` beforehand.
 
 - Left-click anywhere to produce a coordinate at your cursor.
   
@@ -151,15 +180,17 @@ These can be installed automatically by opening a command prompt/Terminal, navig
 
 - Right-click to annotate at your cursor.
   
-  - The video will freeze/pause. While a flashing typing cursor will not appear on screen, each key you press will, at the location you right-clicked.
+  - The video will freeze/pause. Each key you press will show up on screen, at the location you right-clicked.
     
     - Press `Enter` to save the annotated image and resume the video.
     
-    - Press `Esc` to cancel annotating and resume the video.
+    - Press `Esc` to cancel annotating. If the video was not manually paused before, the video will resume.
+    
+    - Press `Backspace` just as you would normally to remove letters from the annotation.
     
     - Annotations will stay on screen for 5 seconds by default.
   
-  - Annotated images are saved in the `annotated_images/<timestamp>` directory, where `<timestamp>` is the system date/time when you ran the program. You can find these .jpg files in the `ChickenMap-main/` folder. Filenames are based on the timestamp in the top-left corner of the video; annotations at the same timestamp are given a `_#` suffix to prevent overwriting.
+  - Annotated images are saved as `.jpg`s in the `annotated_images/<timestamp>` directory, where `<timestamp>` is the system date/time when you ran the program. Filenames are based on the timestamp in the top-left corner of the video; annotations at the same timestamp are given a `_#` suffix to prevent overwriting.
 
 ## Usage
 
@@ -184,9 +215,9 @@ py chickenMap.py -h
 | -c             | --clear_key   | Key to remove coordinate from screen and Excel file (a-z, 0-9) | c                 |
 | -d             | --duration    | Duration of coordinates on screen, in seconds                  | 5                 |
 
-Full options are available in the `options.json5` file. You can open this file with Notepad (Windows) or TextEdit (MacOS), or your favorite text editor, if you have one. Make sure to save the file after you change options. Any option not entered at the command line will default to the one stored in this file. Here, you can also edit font, font color, font scale, and font thickness. See the comments in the file for limitations.
+Full options are available in the `options.txt` file. You can open this file with Notepad (Windows) or TextEdit (MacOS), or your favorite text editor, if you have one. Make sure to save the file after you change options. Any option not entered at the command line will default to the one stored in this file. Here, you can also edit font, font color, font scale, and font thickness. See the comments in the file for limitations.
 
-You can change all the settings you want in `options.json5` and just type `py chickenMap.py VIDEO_PATH` into the command line, and the program will use the settings you entered into `options.json5`. Options entered at command line are saved to `options.json5` so you don't have to retype them each time.
+You can change all the settings you want in `options.txt` and just type `py chickenMap.py VIDEO_PATH` into the command line, and the program will use the settings you entered into `options.txt`. Options entered at command line are saved to `options.txt` so you don't have to retype them each time.
 
 ### Windows
 
@@ -212,13 +243,13 @@ python chickenMap.py VIDEO_PATH
 
 ### Examples
 
-Basic, uses the options in `options.json5`:
+Basic, uses the options in `options.txt`:
 
 ```bash
 py chickenMap.py test.mp4
 ```
 
-Set the exit key to `Esc` and the duration of on-screen coordinates and annotations to 2 seconds, with the other options being filled in from `options.json5`:
+Set the exit key to `Esc` and the duration of on-screen coordinates and annotations to 2 seconds, with the other options being filled in from `options.txt`:
 
 ```bash
 py chickenMap.py test.mp4 -e Esc -d 2
@@ -252,7 +283,7 @@ Tested with:
   
   - Tesseract-OCR 5.12, 5.11
   
-  - Python 3.11, 3.9
+  - Python 3.12, 3.11, 3.9
     
     - OpenCV-Python 4.8.0.74
     
@@ -272,19 +303,23 @@ For non-guaranteed support, email me at logan.orians@gmail.com or message me on 
 
 ## Development
 
-### Decisions
+### Style and Formatting
 
-**Q:** Why did you make the mouse callback function for OpenCV a function in an object/class? Couldn't you have just defined the mouse callback in `main()`?
+This code attempts to follow both [PEP 8](https://peps.python.org/pep-0008/) and the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html), with programmer's freedom on conflicting elements, and line width set to 100 characters (not 80) because it's 2023 and we have high-resolution and ultrawide monitors.
 
-**A:** Sure, but I would still need global variables for coordinates and annotations, as`cv2.setMouseCallback()` doesn't allow the callback function to return anything. I wanted to avoid using global variables (where possible) because it was getting messy, so I needed coordinate and annotation classes. By putting those objects with the mouse_callback function in a class, I could significantly reduce the number of global variables and local/global namespace conflicts I tended to miss when debugging.
+## Decisions (Nerd Questions)
+
+**Q:** Why did you define the mouse callback function as a nested function in `main()`? In previous versions, it was a method of the `MouseCallbackHandler` class. And why did you need it as an instance method before?
+
+**A:** My understanding was that nested functions have *read-only* access to variables in the enclosing scope. While this is true for variables, I determined (through testing) that it does not apply to attributes of a class instance or `SimpleNamespace`. So, I was able to define `mouse_input()` in main, reducing the need for a class. I had the callback function in a class before because it has no return statement and I needed to get `x` and `y` from it.
+
+**Q**: Why did you make a coord a `SimpleNamespace`?
+
+**A**: At one point, it was a class or part of a class. Making it a `SimpleNamespace` allowed me to reuse the `.attribute` notation in my code, saving me time.
 
 **Q:** Why didn't you use a proper UI library or toolkit?
 
-**A:** I don't have experience with UIs in Python, but I have experience with OpenCV. OpenCV was able to do what I needed.
-
-### Style and Formatting
-
-This code attempts to follow both [PEP 8](https://peps.python.org/pep-0008/) and the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html), with programmer's freedom on conflicting elements, and line width set to 100, not 80, characters because it's 2023 and we have high-resolution and ultrawide monitors.
+**A:** I didn't have experience with UIs in Python, but I had experience with OpenCV. OpenCV was able to do what I needed.
 
 ### Tools Used
 
