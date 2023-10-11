@@ -13,7 +13,7 @@ No implied support or warranty.
 
 # Date: 07/13/23
 
-# requirements: pip install -r requirements.txt
+# requirements: pip3 install -r requirements.txt
 # py chickenMap.py <path_to_video>
 #         ^You can drag a video file from Explorer/Finder into this window and press Enter.
 # ex. py chickenMap.py test.mp4
