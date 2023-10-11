@@ -16,7 +16,7 @@
 }
 
 /*
-*************************************************************
+**************************************************************
 "font_color" must be of the form [R,G,B], where R,G,B <= 255.
 You have 16.7 million options; here is the rainbow:
 	red = [255, 0, 0]
@@ -26,9 +26,9 @@ You have 16.7 million options; here is the rainbow:
 	blue = [0, 0, 255]
 	indigo = [75, 0, 130]
 	violet = [128, 0, 128]
-*************************************************************
+**************************************************************
 
-*************************************************************
+**************************************************************
 "font" must be a number 0-7, or 16; feel free to try them out:
 	0: normal size sans-serif font (default)
 	1: small size sans-serif font
@@ -39,5 +39,5 @@ You have 16.7 million options; here is the rainbow:
 	6: hand-writing style font
 	7: hand-writing style font, complex
 	16: italic font
-*************************************************************
+**************************************************************
 */

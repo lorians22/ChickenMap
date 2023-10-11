@@ -1,3 +1,5 @@
 .pylintrc
 /annotated_images/
 /sheets/
+ascii_test.py
+error_log.txt

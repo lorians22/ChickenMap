@@ -19,47 +19,105 @@ No implied support or warranty.
 # ex. py chickenMap.py test.mp4
 
 # TODO:
-# 0) update coords for 2D vs 3D (get_3D_from_2D); --3D input arg
+# 0) update coords for 2D vs 3D (get_3D_from_2D); --3D/--2D input args
+#   - turn coord into class, add get_coord(). and have 3d coord class inherit, w/ get_3d()
 # 1) argparse output file option: allow custom output file, but use get_next_filename() to prevent o/w
-#   - prevent out_dir and anno_dir from being the same name (raise custom error)
+#   - prevent out_dir and anno_dir from being the same name (raise custom error?)
 #   - input validation (after merging with default values?)
 #   - pip install pathvalidate
-# 2) convert string concats to join() where possible for efficiency
-# 3) add error logger to except (Logger class?)
-#   - add try-except to arg_parsing()
+# 3) add more error loggers
 # 4) location-aware text drawing, like how a right-click menu flows up or down from cursor
 # 5) function type hints
 # 6) update code whitespace based on GPSG
 # 7) add GUI (dropdown menus, sanitized text boxes) for options.json5?
-# 8) change ruler to 80 and wrap appropriately
-# 9) look into GPSG decorators
-# 10) convert to f-strings where possible
+# 8) change ruler to 80 and wrap appropriately (maybe)
 
 # TO DO For someone that isn't me and knows Python UI development:
 #   convert this to use a dedicated UI and keyboard/mouse input library instead of OpenCV?
 
 
-__version__ = '2023.10.1'
+__version__ = '2023.10.3'
 __author__ = 'Logan Orians'
 
 
 import argparse
-import os
-import time
-import platform
-import string
+import contextlib
 import json
 import logging
-import types #for SimpleNamespace
+import os
+import platform
+#import re
+import string
+import time
 import tkinter as tk #screen resolution
-import pytesseract #Tesseract-OCR wrapper
+import types #for SimpleNamespace
+
 import cv2
 import openpyxl #Excel engine
-#import re
+import pytesseract #Tesseract-OCR wrapper
 
 
-class AnnotationManager:
-    def __init__(self):
+class FilePath:
+    def __init__(self, directory):
+        self.directory = self._make_proper_path(directory)
+        self.filename = ''
+
+    @staticmethod
+    def _make_proper_path(directory):
+        #lstrip() and rstrip()? needs testing
+        if not directory.endswith('/') and not directory.endswith('\\'): directory += '/'
+        if not os.path.exists(directory): os.makedirs(directory)
+
+        return directory
+
+    def __str__(self):
+        return f"{self.directory}{self.filename}"
+
+
+class SpreadSheet(FilePath):
+    def __init__(self, directory, filename, headers):
+        super().__init__(directory)
+        self.filename = f"{filename}.xlsx"
+        self._set_up_spreadsheet(headers)
+
+    def _set_up_spreadsheet(self, headers):
+        """Sets up the output spreadsheet by adding bolded headers to columns.
+
+        Args:
+            headers (list): the bolded column headers to be written
+        """
+
+        with contextlib.closing(openpyxl.workbook.Workbook()) as wb:
+            ws = wb.active
+            ws.append(headers)
+            for cell in ws['1:1']:
+                cell.font = openpyxl.styles.Font(bold=True) #make headers bold
+            wb.save(str(self))
+
+    def append_to_spreadsheet(self, data):
+        """Appends input data to spreadsheet.
+
+        Args:
+            data (list): the data to be appended
+        """
+
+        with contextlib.closing(openpyxl.load_workbook(str(self))) as wb: #open existing workbook
+            wb.active.append(data) #append data to sheet
+            wb.save(str(self)) #save workbook
+
+    def delete_last_coordinate(self):
+        """Deletes most recent coordinate from Excel sheet."""
+
+        with contextlib.closing(openpyxl.load_workbook(str(self))) as wb:
+            ws = wb.active
+            last_row = ws.max_row
+            ws.delete_rows(last_row)
+            wb.save(str(self))
+
+
+class AnnoTation(FilePath):
+    def __init__(self, directory):
+        super().__init__(directory)
         self.anno_text = ''
         self.typing = False
         self.enter_time = 0
@@ -76,36 +134,17 @@ class AnnotationManager:
         self.write_anno = False
         self.anno_pos = (x, y)
         self.timestamp_time = timestamp_time
+        self.filename = f"{timestamp_time.replace(':', '-')}.jpg"
+        self._prevent_filename_overwrite()
 
+    def _prevent_filename_overwrite(self):
+        """Gets next available filename (to avoid overwriting image at same timestamp)."""
 
-class MouseCallbackHandler:
-    def __init__(self, outfile_path):
-        self.coord = types.SimpleNamespace(coords=(), coord_start_time=0)
-        self.anno_manager = AnnotationManager()
-        self.outfile_path = outfile_path
-        self.frame = None
-
-    def mouse_input(self, event, x, y, flags, param):
-        del flags, param
-
-        if not self.anno_manager.typing: #if user *isn't* typing annotation
-            if event == cv2.EVENT_LBUTTONDOWN: #left mouse click
-                self.coord.coord_start_time = time.time()
-                self.coord.coords = (x, y)
-                timestamp_date, timestamp_time = get_timestamp(self.frame)
-
-                #convert to function
-                data = [timestamp_date, timestamp_time, f'({x}, {y})'] #format data
-                append_to_spreadsheet(self.outfile_path, data)
-
-                #Print timestamp and coordinates in case .xlsx gets corrupted
-                print(timestamp_date)
-                print(timestamp_time)
-                print(str(self.coord.coords)+'\n')
-
-            elif event == cv2.EVENT_RBUTTONDOWN: #right mouse click
-                _, timestamp_time = get_timestamp(self.frame)
-                self.anno_manager.start_typing(x, y, timestamp_time)
+        root, ext = os.path.splitext(self.filename) #get name and extension
+        count = 0
+        while os.path.exists(self.directory + self.filename):
+            count += 1
+            self.filename = f"{root}_{count}{ext}"
 
 
 def get_next_filename(filename):
@@ -123,7 +162,7 @@ def get_next_filename(filename):
     count = 0
     while os.path.exists(new_file):
         count += 1
-        new_file = f'{root}_{count}{ext}'
+        new_file = f"{root}_{count}{ext}"
 
     return new_file
 
@@ -181,13 +220,12 @@ def set_up_spreadsheet(outfile_path, headers):
         headers (list): the bolded column headers to be written
     """
 
-    wb = openpyxl.workbook.Workbook()
-    ws = wb.active
-    ws.append(headers)
-    for cell in ws['1:1']:
-        cell.font = openpyxl.styles.Font(bold=True) #make headers bold
-    wb.save(outfile_path)
-    wb.close()
+    with contextlib.closing(openpyxl.workbook.Workbook()) as wb:
+        ws = wb.active
+        ws.append(headers)
+        for cell in ws['1:1']:
+            cell.font = openpyxl.styles.Font(bold=True) #make headers bold
+        wb.save(outfile_path)
 
 
 def append_to_spreadsheet(outfile_path, data):
@@ -198,10 +236,9 @@ def append_to_spreadsheet(outfile_path, data):
         data (list): the data to be appended
     """
 
-    wb = openpyxl.load_workbook(outfile_path) #open existing workbook
-    wb.active.append(data) #append data to sheet
-    wb.save(outfile_path) #save workbook
-    wb.close() #close file
+    with contextlib.closing(openpyxl.load_workbook(outfile_path)) as wb: #open existing workbook
+        wb.active.append(data) #append data to sheet
+        wb.save(outfile_path) #save workbook
 
 
 def delete_last_coordinate(outfile_path):
@@ -211,12 +248,11 @@ def delete_last_coordinate(outfile_path):
         outfile_path (str): the filepath to the Excel sheet
     """
 
-    wb = openpyxl.load_workbook(outfile_path)
-    ws = wb.active
-    last_row = ws.max_row
-    ws.delete_rows(last_row)
-    wb.save(outfile_path)
-    wb.close()
+    with contextlib.closing(openpyxl.load_workbook(outfile_path)) as wb:
+        ws = wb.active
+        last_row = ws.max_row
+        ws.delete_rows(last_row)
+        wb.save(outfile_path)
 
 
 def arg_parsing():
@@ -245,7 +281,7 @@ def arg_parsing():
     parser.add_argument('-fs', '--font_scale', type=int, help=argparse.SUPPRESS)
     parser.add_argument('-ft', '--font_thickness', type=int, help=argparse.SUPPRESS)
     parser.add_argument('--version', action='version',
-        version=f'%(prog)s {__version__}', help=argparse.SUPPRESS)
+        version=f"%(prog)s {__version__}", help=argparse.SUPPRESS)
 
     return parser.parse_args()
 
@@ -273,9 +309,9 @@ def write_args_to_file(args, filename):
         '\t16: italic font\n', arg_separator, '*/\n'
     ]
 
-    with open(filename, 'w') as FILE:
-        json.dump(vars(args), FILE, indent=4)
-        FILE.writelines(info)
+    with open(filename, 'w') as f:
+        json.dump(vars(args), f, indent=4)
+        f.writelines(info)
 
 
 def get_args_from_file(filename):
@@ -288,10 +324,11 @@ def get_args_from_file(filename):
         argparse.Namespace: arguments from file
     """
 
-    with open(filename, 'r') as FILE:
+    with open(filename, 'r') as f:
         json_data = ''
-        for line in FILE:
-            json_data += line
+        for line in f:
+            #json_data += line
+            json_data = ''.join([json_data, line]) #GPSG 3.10
             if '}' in line: #end of JSON object
                 break
         args_dict = json.loads(json_data)
@@ -299,9 +336,9 @@ def get_args_from_file(filename):
     return argparse.Namespace(**args_dict)
 
 
-# TODO
+# TODO: get more info?
 def get_system_info():
-    """Gets JSON-serialized system info for the error log file.
+    """Gets system info, formatted into lines, for the error log file.
 
     Returns:
         info (str): multi-line string containing system info
@@ -309,11 +346,11 @@ def get_system_info():
 
     uname = platform.uname()
     info = (
-        f'\nOS: {uname.system}\n'
-        f'Release: {uname.release}\n'
-        f'Version: {uname.version}\n'
-        f'Processor: {uname.processor}\n'
-        f'Python: {platform.python_version()}'
+        f"\nOS: {uname.system}\n"
+        f"Release: {uname.release}\n"
+        f"Version: {uname.version}\n"
+        f"Processor: {uname.processor}\n"
+        f"Python: {platform.python_version()}"
     )
 
     return info
@@ -329,7 +366,7 @@ def set_up_logger():
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     file_handler = logging.FileHandler('error_log.txt')
-    file_handler.terminator = f'\n\n{"=" * 80}\n\n'
+    file_handler.terminator = f"\n\n{'=' * 80}\n\n"
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
@@ -377,7 +414,7 @@ def main():
     #TODO: move variable assignments out of try-except
     try:
         # Merge default arguments with input, write to file
-        options_file = 'options.json5'
+        options_file = 'options.txt' #JSON5-formatted file
         args = arg_parsing() #get arg Namespace object
         defaults = get_args_from_file(options_file)
         for key, val in vars(args).items():
@@ -394,22 +431,16 @@ def main():
             exit_key = ord(args.exit_key)
         clear_key = ord(args.clear_key)
         duration = args.duration #duration of coordinates and annotations on screen, in seconds
-        out_dir = get_set_proper_dir(args.out_dir) #create sheets folder
-        anno_dir = get_set_proper_dir(args.anno_dir) #create annotated_images folder
-        anno_dir = get_set_proper_dir(anno_dir+system_date_time+'/') #create a_i subfolder
-        font_ns = types.SimpleNamespace(font=args.font, scale=args.font_scale,
+        font = types.SimpleNamespace(font=args.font, scale=args.font_scale,
             color=tuple(args.font_color), thickness=args.font_thickness)
 
 
-        # Set up spreadsheet file
-        outfile_path = out_dir+system_date_time+'.xlsx'
+        # Instantiate classes/Create NameSpaces
+        coord = types.SimpleNamespace(xy=(), start_time=0)
+        anno = AnnoTation(f"{args.anno_dir}/{system_date_time}")
         headers = ['Date', 'Time', 'Coordinates']
-        set_up_spreadsheet(outfile_path, headers)
-
-
-        # Initialize MouseCallbackHandler object
-        mcb_handler = MouseCallbackHandler(outfile_path)
-
+        sheet = SpreadSheet(args.out_dir, system_date_time, headers)
+        #mcb_handler = MouseCallbackHandler(coord, anno, sheet)
 
         # Determine delay to play video at normal speed
         cap = cv2.VideoCapture(infile_path) #create Video Capture object
@@ -424,82 +455,118 @@ def main():
         window_name = 'Video'
         cv2.namedWindow(window_name, cv2.WINDOW_NORMAL) #create named window to display cap
         cv2.resizeWindow(window_name, width=window_width, height=window_height)
-        cv2.setMouseCallback(window_name, mcb_handler.mouse_input)
 
+        frame = None
+        def mouse_input(event, x, y, flags, param):
+            del flags, param # Unused.
+
+            if not anno.typing: #if user *isn't* typing annotation
+                if event == cv2.EVENT_LBUTTONDOWN: #left mouse click
+                    coord.start_time = time.time()
+                    coord.xy = (x, y)
+                    timestamp_date, timestamp_time = get_timestamp(frame)
+
+                    data = [timestamp_date, timestamp_time, f"({x}, {y})"] #format data
+                    sheet.append_to_spreadsheet(data)
+
+                    # Print timestamp and coordinates in case .xlsx gets corrupted
+                    print(timestamp_date)
+                    print(timestamp_time)
+                    print(f"{str(coord.xy)}\n")
+
+                elif event == cv2.EVENT_RBUTTONDOWN: #right mouse click
+                    _, timestamp_time = get_timestamp(frame)
+                    anno.start_typing(x, y, timestamp_time)
+
+        cv2.setMouseCallback(window_name, mouse_input)
+
+        paused = False
+        pause_key = ord('p')
 
         while cap.isOpened():
-            ret, frame = cap.read() #get cap frame-by-frame
-            if ret:
-                # Pass frame to mcb_handler
-                mcb_handler.frame = frame
+            if not paused:
+                ret, frame = cap.read() #get cap frame-by-frame
+                if not ret: break
                 
-                # Get LSByte of keypress for cross-platform compatibility
-                key_press = cv2.waitKey(delay) & 0xFF
-                if not mcb_handler.anno_manager.typing:
-                    if key_press == exit_key: #quit program
-                        break
-                    if mcb_handler.anno_manager.write_anno:
-                        mcb_handler.anno_manager.write_anno = False
-                        filename = anno_dir+mcb_handler.anno_manager.timestamp_time.replace(':', '-')+'.jpg'
-                        anno_filename = get_next_filename(filename) #makes sure not to overwrite image
-                        cv2.imwrite(anno_filename, frame_copy)
-                    if time.time() - mcb_handler.anno_manager.enter_time > duration:
-                        mcb_handler.anno_manager.show_anno = False
-                        mcb_handler.anno_manager.anno_text = ''
+            # Get LSByte of keypress for cross-platform compatibility
+            key_press = cv2.waitKey(delay) & 0xFF
+            if not anno.typing:
+                if key_press == exit_key: #quit program
+                    break
+                if key_press == pause_key:
+                    paused = not paused #toggle paused
+                if anno.write_anno:
+                    anno.write_anno = False
+                    cv2.imwrite(str(anno), frame_copy)
+                if time.time() - anno.enter_time > duration:
+                    anno.show_anno = False
+                    anno.anno_text = ''
 
-                # Prevent coords from popping back up after annotation is entered
-                if mcb_handler.anno_manager.typing:
-                    mcb_handler.coord.coords = ()
+            # Prevent coords from popping back up after annotation is entered
+            if anno.typing:
+                coord.xy = ()
 
-                # Only allow deletion of [date, time, coord] when on screen
-                if mcb_handler.coord.coords:
-                    if key_press == clear_key:
-                        mcb_handler.coord.coords = ()
-                        delete_last_coordinate(outfile_path)
-                    elif (time.time() - mcb_handler.coord.coord_start_time < duration): #on-screen coordinate timeout
-                        cv2.putText(frame, str(mcb_handler.coord.coords), mcb_handler.coord.coords,
-                            font_ns.font, font_ns.scale, font_ns.color, font_ns.thickness)
+            # Only allow deletion of [date, time, coord] when on screen
+            if coord.xy:
+                frame_copy = frame.copy() #get copy of frame so clearing looks better
+                if key_press == clear_key:
+                    coord.xy = ()
+                    sheet.delete_last_coordinate()
+                elif (time.time() - coord.start_time < duration): #on-screen coordinate timeout
+                    if paused:
+                        cv2.putText(frame_copy, str(coord.xy), coord.xy,
+                            font.font, font.scale, font.color, font.thickness)
+                    else:
+                        cv2.putText(frame, str(coord.xy), coord.xy,
+                            font.font, font.scale, font.color, font.thickness)
 
-                # This while loop ensures that the video is paused while annotating
-                while mcb_handler.anno_manager.typing:
-                    frame_copy = frame.copy() #get copy of frame so backspace works
+            # This while loop ensures that the video is paused while annotating
+            while anno.typing:
+                frame_copy = frame.copy() #get copy of frame so backspace works
 
-                    # Display frame with annotation
-                    if mcb_handler.anno_manager.show_anno:
-                        cv2.putText(frame_copy, mcb_handler.anno_manager.anno_text,
-                            mcb_handler.anno_manager.anno_pos, font_ns.font, font_ns.scale,
-                            font_ns.color, font_ns.thickness)
-                        cv2.imshow(window_name, frame_copy)
+                # Display frame with annotation
+                if anno.show_anno:
+                    cv2.putText(frame_copy, anno.anno_text,
+                        anno.anno_pos, font.font, font.scale,
+                        font.color, font.thickness)
+                    cv2.imshow(window_name, frame_copy)
 
-                    key_press = cv2.waitKey(0) & 0xFF #get LSByte of keypress for cross-platform compatibility
-                    if key_press != 255:
-                        if key_press == 13: #Enter
-                            mcb_handler.anno_manager.typing = False
-                            mcb_handler.anno_manager.write_anno = True
-                            mcb_handler.anno_manager.enter_time = time.time()
-                        elif key_press == 27: #Esc
-                            mcb_handler.anno_manager.typing = False
-                            mcb_handler.anno_manager.show_anno = False
-                            mcb_handler.anno_manager.anno_text = ''
-                        elif key_press == 8: #Backspace
-                            if mcb_handler.anno_manager.anno_text: #DON'T COMBINE INTO ^ELIF
-                                mcb_handler.anno_manager.anno_text = mcb_handler.anno_manager.anno_text[:-1]
-                        elif chr(key_press) in ascii_allowlist: #printable ascii chars
-                            mcb_handler.anno_manager.anno_text += chr(key_press)
-                            mcb_handler.anno_manager.show_anno = True
+                key_press = cv2.waitKey(0) & 0xFF #get LSByte of keypress for cross-platform compatibility
+                if key_press != 255:
+                    if key_press == 13: #Enter
+                        anno.typing = False
+                        anno.write_anno = True
+                        anno.enter_time = time.time()
+                    elif key_press == 27: #Esc
+                        anno.typing = False
+                        anno.show_anno = False
+                        anno.anno_text = ''
+                    elif key_press == 8: #Backspace
+                        if anno.anno_text: #DON'T COMBINE INTO ^ELIF
+                            anno.anno_text = anno.anno_text[:-1]
+                    elif chr(key_press) in ascii_allowlist: #printable ascii chars
+                        anno.anno_text += chr(key_press)
+                        anno.show_anno = True
 
-                if mcb_handler.anno_manager.show_anno:
-                    cv2.putText(frame, mcb_handler.anno_manager.anno_text,
-                        mcb_handler.anno_manager.anno_pos, font_ns.font,
-                        font_ns.scale, font_ns.color, font_ns.thickness)
+            if anno.show_anno:
+                if paused:
+                    cv2.putText(frame_copy, anno.anno_text,
+                        anno.anno_pos, font.font,
+                        font.scale, font.color, font.thickness)
+                else:
+                    cv2.putText(frame, anno.anno_text,
+                        anno.anno_pos, font.font,
+                        font.scale, font.color, font.thickness)
 
-                cv2.imshow(window_name, frame) #show video frame
+            #this looks unnecessary but it's the only way for things to be clean
+            if paused and (coord.xy or anno.show_anno):
+                cv2.imshow(window_name, frame_copy) #show video frame
             else:
-                break
+                cv2.imshow(window_name, frame) #show video frame
 
     except Exception as e:
-        logger.error(f"\nError: {e}\n{get_system_info()}\n", exc_info=True)
-        print('\n***AN ERROR OCCURRED! PLEASE FOLLOW THE SUPPORT INSTRUCTIONS IN THE README.***')
+        logger.error('\nError: %s\n', e, exc_info=True)
+        print(f'\n***AN ERROR OCCURRED! PLEASE FOLLOW THE SUPPORT INSTRUCTIONS IN THE README.***')
 
     finally:
         if 'cap' in locals() or 'cap' in globals(): #if program initialized cap before error
