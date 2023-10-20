@@ -2,23 +2,31 @@
 
 #Date: 10/13/2023
 
-__version__ = '2023.10.1'
+__version__ = '2023.10.2'
 __author__ = 'Logan Orians'
 
 
 #TODO
 # 0) integrate with chickenMap.py - no file writing
-# 1) add cv2 font preview (is this possible?)
-# 3) add and update docstrings
+# 1) add and update docstrings
+# 2) convert label_err to class to cut down on function parameter mess?
+# 3) ensure accuracy of fontscale (doesn't look accurate)
+# 4) convert combobox to radio buttons? would remove a validation function
+
+# Note: in Python3.7, dicts are insertion-ordered -> need Python 3.7+
 
 
+import ast
 import json
-import string #ascii
+import string
 import tkinter as tk
-from tkinter import ttk #newer widgets
-from tkinter import colorchooser #colorpicker
+from tkinter import ttk
+from tkinter import colorchooser
 
-from PIL import ImageColor #rgb hex conversion
+import cv2
+import numpy as np
+from PIL import Image
+from PIL import ImageTk
 
 
 def center_window(root, width, height):
@@ -44,110 +52,152 @@ def write_args_to_file(args, filename):
         raise
 
 
-def pick_color(widget):
+def clear_error(name, error_messages, label_err):
+    if name in error_messages: del error_messages[name]
+    update_error_label(error_messages, label_err)
+
+
+def add_error(name, message, error_messages, label_err):
+    error_messages[name] = message
+    update_error_label(error_messages, label_err)
+
+
+def update_error_label(error_messages, label_err):
+    if error_messages:
+        # Get most recently inserted error message, Python 3.7+
+        latest_error = error_messages[next(reversed(error_messages))]
+        label_err.config(text=f'{latest_error}')
+    else: label_err.config(text='')
+
+
+def pick_color(font_vars, canvas):
     color = colorchooser.askcolor(title='Pick a color')
-    if color: widget.config(background=color[1])
+    if color != (None, None):
+        font_vars[4].config(background=color[1]) #update color widget
+        font_vars[3].set(color[0])
+        update_font_preview(font_vars[:4], canvas)
 
 
-def set_defaults(default_vars, widget):
+def set_defaults(default_vars, canvas):
     default_vars[0].set('sheets/') #spreadsheets directory
     default_vars[1].set('annotated_images/') #annotations directory
     default_vars[2].set('q') #exit key
     default_vars[3].set('c') #clear key
     default_vars[4].set(5) #duration
-    default_vars[5].set(2) #font scale
+    default_vars[5].set(1) #font scale
     default_vars[6].set(2) #font thickness
     default_vars[7].set(0) #font
-    widget.config(background='#00FF00') #font color (green)
+    default_vars[8].set('(0, 255, 0)') #font color tuple, green
+    default_vars[9].config(background='#00FF00') #font color widget, green
+    
+    update_font_preview(default_vars[5:9], canvas)
 
 
-def submit_options(root, entries, drop_down, label_ack, label_err, color_widget,
-    font_options):
+def submit_options(root, option_vars, label_ack, error_messages):
+    #if invalid input, don't submit
+    if error_messages: return
 
-    label_err.config(text='') #clear error label
-
-    # Rename options
-    args = dict()
-    args['out_dir'] = entries[0].get() #sheets directory
-    args['anno_dir'] = entries[1].get() #annotated images directory
-    args['exit_key'] = entries[2].get() #exit key
-    args['clear_key'] = entries[3].get() #clear key
-    args['duration'] = int(entries[4].get()) #duration
-    args['font'] = int(drop_down.get()) #font
-
-    rgb_hex = str(color_widget['background']) #get #RRGGBB from color_label
-    args['font_color'] = ImageColor.getrgb(rgb_hex) #convert to (R, G, B)
-    args['font_scale'] = int(entries[5].get()) #font scale
-    args['font_thickness'] = int(entries[6].get()) #font thickness
+    # Rename options for output
+    args = {}
+    args['out_dir'] = option_vars[0].get()
+    args['anno_dir'] = option_vars[1].get()
+    args['exit_key'] = option_vars[2].get()
+    args['clear_key'] = option_vars[3].get()
+    args['duration'] = float(option_vars[4].get())
+    args['font'] = int(option_vars[7].get())
+    args['font_color'] = ast.literal_eval(option_vars[8].get())
+    args['font_scale'] = float(option_vars[5].get())
+    args['font_thickness'] = int(option_vars[6].get())
     
     write_args_to_file(args, 'options1.txt')
     label_ack.config(text='Options saved!')
     root.after(2500, lambda:clear_label(label_ack)) #clear after 2.5 seconds
 
 
-def validate_int(var, name, option_vals, label_err):
-    # Clear error and options value
-    option_vals[name] = 0
-    label_err.config(text='')
+def update_font_preview(font_vars, canvas):
+    # Construct preview
+    image = np.zeros((200, 400, 3), dtype=np.uint8)
+    image.fill(255)
 
-    entry = var.get()
+    scale = float(font_vars[0].get())
+    thickness = int(font_vars[1].get())
 
+    color_rgb = ast.literal_eval(font_vars[3].get())
+    color_bgr = tuple(reversed(color_rgb))
+
+    font = int(font_vars[2].get())
+    text = '(12345, 67890)'
+    cv2.putText(image, text, (10, 100), font, scale, color_bgr, thickness)
+
+    img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    img = Image.fromarray(img)
+    img = ImageTk.PhotoImage(image=img)
+    canvas.create_image(0, 0, anchor=tk.NW, image=img)
+    canvas.image = img
+
+
+def validate_int(var, name, option_vars, error_messages, label_err, canvas):
     try:
-        entry = int(entry)
+        entry = int(var.get()) #raises ValueError if cannot cast
         if entry <= 0:
             raise ValueError
-        option_vals[name] = entry
+        clear_error(name, error_messages, label_err)
+        if not error_messages:
+            update_font_preview(option_vars[5:9], canvas)
     except ValueError:
-        label_err.config(text=f'Please enter a positive integer for {name}.')
+        add_error(name, f'Please enter a positive integer for {name}.', error_messages, label_err)
 
 
-def validate_key(var, name, option_vals, label_err, approved_keys):
-    # Clear error and options value
-    option_vals[name] = 0
-    label_err.config(text='')
+def validate_float(var, name, option_vars, error_messages, label_err, canvas=None):
+    try:
+        entry = float(var.get()) #raises ValueError if cannot cast
+        if entry <= 0:
+            raise ValueError
+        clear_error(name, error_messages, label_err)
+        if canvas and not error_messages: #only update if all params are available
+            update_font_preview(option_vars[5:9], canvas) #update preview with font_vars and canvas
+    except ValueError:
+        add_error(name, f'Please enter a positive value for {name} (decimals are okay).', error_messages, label_err)
 
+
+def validate_key(var, name, option_vars, error_messages, label_err, approved_keys):
     entry = var.get()
 
     try:
-        #TODO: DeMorgan's this?
+        #TODO: combine and DeMorgan's?
         if len(entry) == 1 and entry in approved_keys:
-            option_vals[name] = entry
+            pass
         elif entry.lower() == 'esc':
-            option_vals[name] = 'Esc'
+            pass
         else:
             raise ValueError
+        clear_error(name, error_messages, label_err)
     except ValueError:
-        label_err.config(text='Please enter one character a-z or 0-9, or type Esc.')
+        add_error(name, 'Please enter one character a-z or 0-9, or type Esc.', error_messages, label_err)
 
 
-def validate_dir(var, name, option_vals, label_err):
-    # Clear error and options value
-    option_vals[name] = 0
-    label_err.config(text='')
-
+def validate_dir(var, name, option_vars, error_messages, label_err):
     invalid_chars = ('<', '>', ':', '"', '|', '?', '*')
     entry = var.get()
 
     try:
         if any(inv_char in entry for inv_char in invalid_chars) or entry == '':
             raise ValueError
-        option_vals[name] = entry
+        clear_error(name, error_messages, label_err)
     except ValueError:
-        label_err.config(text='Directory cannot contain < > : " | ? *')
+        add_error(name, 'Directory cannot contain < > : " | ? *', error_messages, label_err)
 
 
-def validate_dropdown(var, name, option_vals, label_err, font_options):
-    option_vals[name] = 0
-    label_err.config(text='')
-
+def validate_dropdown(var, name, option_vars, error_messages, label_err, font_options):
     drop_down = var.get()
 
     try:
         if drop_down not in font_options:
             raise ValueError
-        option_vals[name] = drop_down
+        clear_error(name, error_messages, label_err)
     except ValueError:
-        label_err.config(text='Please select an item from the drop-down menu.')
+        add_error(name, 'Please select an item from the drop-down menu.', error_messages, label_err)
+
 
 def clear_label(label):
     """Clears passed-in label. Callback function for root.after().
@@ -170,17 +220,19 @@ def close_window(root):
 
 
 def main():
+    # Set up GUI Window
     root = tk.Tk()
     root.title('Options')
-
-
-    window_width = 500
-    window_height = 400
-    #center_window(root, window_width, window_height)
-
-
     frame = ttk.Frame(root)
     frame.grid(row=0, column=0, padx=10, pady=10)
+
+    #window_width = 500
+    #window_height = 400
+    #center_window(root, window_width, window_height)
+
+    # Set Up Font Preview
+    canvas = tk.Canvas(root, width=400, height=200)
+    canvas.grid(row=10, column=0)
 
 
     lower_ascii = string.ascii_lowercase
@@ -219,116 +271,117 @@ def main():
 
 
     # Input fields
-    entries = []
-    defaults = []
-    final_args = dict()
+    option_vars = [] #entry field vars. [8] is color tuple, [9] is color widget
+    error_messages = {} #dict for keeping track of on-GUI errors
 
     sheet_var = tk.StringVar()
     sheet_var.set('sheets/')
-    defaults.append(sheet_var)
     entry_sheet = ttk.Entry(frame, textvariable=sheet_var)
     entry_sheet.grid(row=0, column=1)
-    sheet_var.trace_add('write', lambda *args:validate_dir(
-        sheet_var, 'Spreadsheet Directory', final_args, label_err))
-    entries.append(entry_sheet)
+    sheet_var.trace_add('write', lambda *args: validate_dir(
+        sheet_var, 'Spreadsheet Directory', option_vars, error_messages, label_err))
+    option_vars.append(sheet_var)
 
     anno_var = tk.StringVar()
     anno_var.set('annotated_images/')
-    defaults.append(anno_var)
     entry_anno = ttk.Entry(frame, textvariable=anno_var)
     entry_anno.grid(row=1, column=1)
     anno_var.trace_add('write', lambda *args: validate_dir(
-        anno_var, 'Annotation Directory', final_args, label_err))
-    entries.append(entry_anno)
+        anno_var, 'Annotation Directory', option_vars, error_messages, label_err))
+    option_vars.append(anno_var)
 
     exit_key_var = tk.StringVar()
     exit_key_var.set('q')
-    defaults.append(exit_key_var)
     entry_exit_key = ttk.Entry(frame, textvariable=exit_key_var)
     entry_exit_key.grid(row=2, column=1)
     exit_key_var.trace_add('write', lambda *args: validate_key(
-        exit_key_var, 'Exit Key', final_args, label_err, approved_keys))
-    entries.append(entry_exit_key)
+        exit_key_var, 'Exit Key', option_vars, error_messages, label_err, approved_keys))
+    option_vars.append(exit_key_var)
 
     clear_key_var = tk.StringVar()
     clear_key_var.set('c')
-    defaults.append(clear_key_var)
+    #final_args['Clear Key'] = clear_key_var.get()
     entry_clear_key = ttk.Entry(frame, textvariable=clear_key_var)
     entry_clear_key.grid(row=3, column=1)
     clear_key_var.trace_add('write', lambda *args: validate_key(
-        clear_key_var, 'Exit Key', final_args, label_err, approved_keys))
-    entries.append(entry_clear_key)
+        clear_key_var, 'Clear Key', option_vars, error_messages, label_err, approved_keys))
+    option_vars.append(clear_key_var)
 
     duration_var = tk.StringVar()
     duration_var.set(5)
-    defaults.append(duration_var)
     entry_duration = ttk.Entry(frame, textvariable=duration_var)
     entry_duration.grid(row=4, column=1)
-    duration_var.trace_add('write', lambda *args: validate_int(
-        duration_var, 'Duration', final_args, label_err))
-    entries.append(entry_duration)
+    duration_var.trace_add('write', lambda *args: validate_float(
+        duration_var, 'Duration', option_vars, error_messages, label_err))
+    option_vars.append(duration_var)
 
     font_scale_var = tk.StringVar()
-    font_scale_var.set(2)
-    defaults.append(font_scale_var)
+    font_scale_var.set(1)
     entry_font_scale = ttk.Entry(frame, textvariable=font_scale_var)
     entry_font_scale.grid(row=7, column=1)
-    font_scale_var.trace_add('write', lambda *args: validate_int(
-        font_scale_var, 'Duration', final_args, label_err))
-    entries.append(entry_font_scale)
+    font_scale_var.trace_add('write', lambda *args: validate_float(
+        font_scale_var, 'Font Scale', option_vars, error_messages, label_err, canvas))
+    option_vars.append(font_scale_var)
 
     font_thickness_var = tk.StringVar()
     font_thickness_var.set(2)
-    defaults.append(font_thickness_var)
     entry_font_thickness = ttk.Entry(frame, textvariable=font_thickness_var)
     entry_font_thickness.grid(row=8, column=1)
     font_thickness_var.trace_add('write', lambda *args: validate_int(
-        font_thickness_var, 'Duration', final_args, label_err))
-    entries.append(entry_font_thickness)
+        font_thickness_var, 'Font Thickness', option_vars, error_messages, label_err, canvas))
+    option_vars.append(font_thickness_var)
 
 
     # Drop-down menu
     font_options = ['0', '1', '2', '3', '4', '5', '6', '7', '16']
     font_var = tk.StringVar()
-    defaults.append(font_var)
     font_var.set(font_options[0])
-    font_menu = ttk.Combobox(frame, textvariable=font_var,
-        values=font_options)
+    font_menu = ttk.Combobox(frame, textvariable=font_var, values=font_options)
     font_menu.grid(row=5, column=1)
     font_var.trace_add('write', lambda *args: validate_dropdown(
-        font_var, 'Font', final_args, label_err, font_options))
+        font_var, 'Font', option_vars, error_messages, label_err, font_options))
+    option_vars.append(font_var)
 
 
     # Color picker
+    color_tuple_var = tk.StringVar()
+    color_tuple_var.set('(0, 255, 0)')
+    option_vars.append(color_tuple_var)
     rectangle_color = tk.Canvas(frame, width=25, height=25, bg='#00FF00')
     rectangle_color.grid(row=6, column=1, sticky='E')
+    option_vars.append(rectangle_color)
+
     color_button = ttk.Button(frame, text='Pick Font Color',
-        command=lambda: pick_color(rectangle_color))
+        command=lambda: pick_color(option_vars[5:], canvas))
     color_button.grid(row=6, column=1)
 
 
     # Acknowledgement/Error labels
     label_ack = ttk.Label(frame, foreground='green')
-    label_ack.grid(row=11, column=0, columnspan=2)
+    label_ack.grid(row=11, column=0, columnspan=3)
 
     label_err = ttk.Label(frame, foreground='red')
-    label_err.grid(row=10, column=0, columnspan=2)
+    label_err.grid(row=10, column=0, columnspan=3)
 
 
-    # Function buttons
+    # Reset to Defaults Button
     default_button = ttk.Button(frame, text='Defaults',
-        command=lambda: set_defaults(defaults, rectangle_color))
+        command=lambda: set_defaults(option_vars, canvas))
     default_button.grid(row=9, column=0)
 
+    # Submit Options Button
     submit_button = ttk.Button(frame, text='Submit',
-        command=lambda: submit_options(root, entries, font_menu, label_ack,
-            label_err, rectangle_color, font_options))
+        command=lambda: submit_options(root, option_vars, label_ack,
+            error_messages))
     submit_button.grid(row=9, column=1)
 
+    # Close Program Button
     close_button = ttk.Button(frame, text='Close',
         command=lambda: close_window(root))
     close_button.grid(row=9, column=2)
 
+
+    update_font_preview(option_vars[5:9], canvas) #initialize font preview
 
     root.mainloop()
 
