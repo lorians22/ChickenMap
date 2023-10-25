@@ -1,43 +1,15 @@
 {
-    "video_path": "test.mp4",
     "out_dir": "sheets/",
     "anno_dir": "annotated_images/",
     "exit_key": "q",
     "clear_key": "c",
-    "duration": 5,
+    "duration": 5.0,
     "font": 0,
     "font_color": [
         0,
         255,
         0
     ],
-    "font_scale": 1,
+    "font_scale": 1.0,
     "font_thickness": 2
 }
-
-/*
-**************************************************************
-"font_color" must be of the form [R,G,B], where R,G,B <= 255.
-You have 16.7 million options; here is the rainbow:
-	red = [255, 0, 0]
-	orange = [255, 165, 0]
-	yellow = [255, 255, 0]
-	green (lime) = [0, 255, 0]
-	blue = [0, 0, 255]
-	indigo = [75, 0, 130]
-	violet = [128, 0, 128]
-**************************************************************
-
-**************************************************************
-"font" must be a number 0-7, or 16; feel free to try them out:
-	0: normal size sans-serif font (default)
-	1: small size sans-serif font
-	2: normal size sans-serif font, complex
-	3: normal size serif font
-	4: normal size serif font, complex
-	5: small size serif font
-	6: hand-writing style font
-	7: hand-writing style font, complex
-	16: italic font
-**************************************************************
-*/
