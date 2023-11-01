@@ -1,8 +1,10 @@
 {
+    "video_path": "test.mp4",
     "out_dir": "sheets/",
     "anno_dir": "annotated_images/",
     "exit_key": "q",
     "clear_key": "c",
+    "pause_key": "p",
     "duration": 5.0,
     "font": 0,
     "font_color": [
