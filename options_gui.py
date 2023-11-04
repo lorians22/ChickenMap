@@ -23,6 +23,10 @@ __author__ = 'Logan Orians'
 
 #TODO on unpaid time:
 # 1) convert to class (might be cleaner)
+# 2) "When catching operating system errors,
+#    prefer the explicit exception hierarchy introduced in Python 3.3
+#    over introspection of errno values."
+# 3) Convert certain variables (actually constants) to proper naming convention
 
 
 import ast
@@ -230,7 +234,7 @@ def save_options(root: TRoot, option_vars: list[TStringVar], label_ack: TLabel,
     args['font_scale'] = float(option_vars[9].get())
     args['font_thickness'] = int(option_vars[10].get())
     
-    write_args_to_file(args, 'options.txt')
+    write_args_to_file(args, 'options.json')
     label_ack.config(text='Saved!')
     root.after(2500, lambda: clear_label(label_ack)) #clear after 2.5 seconds
 
@@ -478,7 +482,7 @@ def main():
     option_vars = [] #entry field vars list
     err_msgs = {} #dict for keeping track of on-GUI error messages
 
-    saved_args = get_args_from_file('options.txt')
+    saved_args = get_args_from_file('options.json')
 
     label_video = ttk.Label(frame, text='Input video file:')
     label_video.grid(row=0, column=0, sticky='W', pady=2)

@@ -40,15 +40,15 @@ Version 2023.10.2
 
 - [Privacy](#privacy)
 
-- [Support](#support)
-
 - [Development](#development)
   
   - [Style and Formatting](#style-and-formatting)
   
-  - [Decisions](#decisions-nerd-questions)
-  
   - [Tools Used](#tools-used)
+  
+  - [Decisions](#decisions-nerd-questions)
+
+- [Support](#support)
 
     [MacOS](#macos-2)
 
@@ -110,7 +110,7 @@ Version 2023.10.2
 
 - Tesseract 5.x. (tested with 5.3.1). Download the latest [here for Windows](https://digi.bib.uni-mannheim.de/tesseract/tesseract-ocr-w64-setup-5.3.1.20230401.exe) and install.
 
-- Python 3.8+ (tested with 3.8, 3.11, 3.12). Download the latest for your system [here](https://www.python.org/downloads/).
+- Python 3.7+ (tested with 3.8, 3.11, 3.12). Download the latest for your system [here](https://www.python.org/downloads/) and install. If you have Python installed already and want to see if your currently installed version is sufficient (i.e., >=3.7), type `py --version` in a command prompt. 
   
   - On Windows, when installing, make sure to check the *Add python.exe to PATH* box, then click *Install Now*. At the end, you'll have the option to *Disable path length limit*. While not necessary for this program, it's a good idea to click that option.
     
@@ -127,12 +127,19 @@ Version 2023.10.2
 
 - Tesseract 5.x (tested with 5.3.2).
   
-  ```bash
-  python3 --version
-  pip3 --version
-  ```
+  - First, install [Homebrew](https://brew.sh/) by typing the below command into Terminal. If you already have Homebrew installed, typing `which brew` will show you the install location, and you can skip to the next step:
+    
+    ```bash
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    ```
+  
+  - Then install Tesseract:
+    
+    ```bash
+    brew install tesseract
+    ```
 
-- Python 3.8+ (tested with 3.8, 3.11, 3.12). Download the latest for your system [here](https://www.python.org/downloads/).
+- Python 3.7+ (tested with 3.8, 3.11, 3.12). Download the latest for your system [here](https://www.python.org/downloads/).
   
   - After installation, verify that Python3 and pip3 are installed in a Terminal. If both respond with a version number, you're good to go:
     
@@ -145,15 +152,17 @@ Version 2023.10.2
 
 [Download a zip](https://github.com/lorians22/ChickenMap/archive/refs/heads/main.zip) of this code, then extract. Required Python libraries for this program:
 
+- NumPy
+
 - OpenCV-Python
+
+- openpyxl
 
 - Python-tesseract
 
 - Pillow
 
-- openpyxl
-
-These can be installed automatically by opening a command prompt/Terminal, navigating to the folder, and using `pip3` to read the requirements file:
+These libraries can be installed automatically by opening a command prompt/Terminal, navigating to the folder, and using `pip3` to read the requirements file:
 
 ### Windows
 
@@ -234,7 +243,7 @@ python3 chickenMap.py -h
 | -c             | --clear_key   | Key to remove coordinate from screen and Excel file (a-z, 0-9) | c                 |
 | -d             | --duration    | Duration of coordinates on screen, in seconds                  | 5                 |
 
-Full options are available in the `options.txt` file. You can open this file with Notepad (Windows) or TextEdit (MacOS), or your favorite text editor, if you have one. Make sure to save the file after you change options. Any option not entered at the command line will default to the one stored in this file. Here, you can also edit font, font color, font scale, and font thickness. See the comments in the file for limitations.
+Full options are available in the `options.txt` file. You can open this file with Notepad (Windows), TextEdit (MacOS), or your favorite text editor, if you have one. Make sure to save the file after you change options. Any option not entered at the command line will default to the one stored in this file. Here, you can also edit font, font color, font scale, and font thickness. See the comments in the file for limitations.
 
 You can change all the settings you want in `options.txt` and just type `py chickenMap.py VIDEO_PATH` into the command line, and the program will use the settings you entered into `options.txt`. Options entered at command line are saved to `options.txt` so you don't have to retype them each time.
 
@@ -258,7 +267,7 @@ cd ~/Downloads/ChickenMap-main
 python3 chickenMap.py VIDEO_PATH
 ```
 
-Replace `test.mp4` with the filename of the video you want to play. You can drag a video file from Finder into the Terminal window and press enter to run the program; this makes it easy if your video is stored on an external hard drive. Just make sure to add a space after `python chickenMap.py` before dragging a video file into the window.
+`VIDEO_PATH` should not be typed out; it should be the filename of the video you want to play. You can drag a video file from Finder into the Terminal window and press enter to run the program; this makes it easy if your video is stored on an external hard drive. Just make sure to add a space after `python3 chickenMap.py` before dragging a video file into the window.
 
 ### Examples
 
@@ -316,35 +325,39 @@ Tested with:
 
 This program does not store or transmit any user data to an external source and can run without connection to the Internet. Your OS/platform (Windows, MacOS) is determined at runtime to point `pytesseract` to the Tesseract-OCR executable on Windows, and it is not stored after the program exits. Program errors and platform info (OS version, Python version, processor name) are stored in `error_log.txt` and are not transmitted by this program; if you have errors, see [Support](#support).
 
-## Support
-
-For non-guaranteed support, email me at logan.orians@gmail.com or message me on [Discord](https://discord.com/users/l_orians). Please attach `error_log.txt` to your message and describe what you were doing when the error occurred.
-
 ## Development
 
 ### Style and Formatting
 
-This code attempts to follow both [PEP 8](https://peps.python.org/pep-0008/) and the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html), with programmer's freedom on conflicting elements, and line width set to 100, not 80, characters because it's 2023 and we have high-resolution and ultrawide monitors.
-
-## Decisions (Nerd Questions)
-
-**Q:** Why did you define the mouse callback function as a nested function in `main()`? In previous versions, it was a method of the `MouseCallbackHandler` class. And why did you need it as an instance method before?
-
-**A:** My understanding was that nested functions have *read-only* access to variables in the enclosing scope. While this is true for variables, I determined (through testing) that it does not apply to attributes of a class instance or `SimpleNamespace`. So, I was able to define `mouse_input()` in main, reducing the need for a class. I had the callback function in a class before because I needed to get `x` and `y` from it, and it has with no return statement.
-
-**Q**: Why did you make a coord a `SimpleNamespace`?
-
-**A**: At one point, it was a class or part of a class. Making it a `SimpleNamespace` allowed me to reuse the `.attribute` notation in my code, saving me time.
-
-**Q:** Why didn't you use a proper UI library or toolkit?
-
-**A:** I didn't have experience with UIs in Python, but I had experience with OpenCV. OpenCV was able to do what I needed.
+This code attempts to follow [PEP 484](https://peps.python.org/pep-0484/) for type hints and [PEP 8](https://peps.python.org/pep-0008/) and the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html) for style and formatting, with programmer's freedom on any conflicting elements. Line width is set to 100 characters (not 80) because it's 2023 and we have high-resolution and ultrawide monitors.
 
 ### Tools Used
 
 - [Sublime Text 4](https://www.sublimetext.com/), [Notepad++](https://notepad-plus-plus.org/) and [VSCode](https://code.visualstudio.com/) for text editing and programming
 
 - [MarkText](https://www.marktext.cc/) for README editing
+
+### Decisions (Nerd Questions)
+
+**Q:** Why did you change the mouse callback function for OpenCV so much?
+
+**A:** *Stop stalking my commits*        All the tutorials suck and just have you use a global variable if you need to get something like `x` and `y` from the callback (you can't grab the return value of a callback function). Nothing explicitly wrong with globals, I just like to avoid them when I can so I don't risk interfering with something unexpected. You can set the callback function to a class method, define it in main() as a nested function, or actually read the documentation and notice that the `param` argument might as well be nearly purpose-built for this, and yet no one uses it. Just pass in an *object* for `param` and set a value in the callback and bam, problem solved.
+
+**Q:** Why did you make *x* a `SimpleNamespace` instead of a `dict`?
+
+**A:** I really like the dot notation for accessing object attributes and often find myself trying to use it on dicts. If I don't need to do anything fancy with key-value pairs, why not make it easier on myself? Plus it looks cleaner, in my opinion.
+
+**Q:** Why didn't you use a modern UI library or toolkit?
+
+**A:** I didn't have experience with modern UIs in Python, but I had experience with tkinter/Tcl/Tk and OpenCV. OpenCV and tkinter were able to do what I needed. Feel free to rewrite using [PyQt5](https://pypi.org/project/PyQt5/), [DearPyGUI](https://pypi.org/project/dearpygui/), [PySimpleGUI](https://pypi.org/project/PySimpleGUI/), or other modern cross-platform framework and fork/pull request. Not sure what else exists for OpenCV, but go nuts.
+
+**Q:** Why did you use a third-party theme for the GUI instead of just the built-in ones?
+
+**A:** Honestly, I didn't want to spend the time to make a dark version of the default theme for Windows (and yes, a dark mode was totally necessary, my eyes were burning). MacOS's default `aqua` theme handled it automatically without me telling it to, but Windows would have just taken too long to get right (unless I'm missing something obvious). It's only a few lines of code to determine the system theme, so adding a theme where I can just tell it "light" or "dark" was far less of a headache. And the theme looks better, in my opinion.
+
+## Support
+
+For support, email me at [logan.orians@gmail.com](mailto:logan.orians@gmail.com) with "chicken map" in the subject line, or message me on [Discord](https://discord.com/users/l_orians) and I will get back to you as soon as possible. Please attach `error_log.txt` to your message (and any errors present in Command Prompt/Terminal) and describe what you were doing when the error occurred.
 
 ## License
 

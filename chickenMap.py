@@ -19,24 +19,16 @@ No implied support or warranty.
 # ex. py chickenMap.py test.mp4
 
 # TODO:
-# 0) update coords for 2D vs 3D (get_3D_from_2D); --3D/--2D input args
-#   - turn coord into class, add get_coord(). and have 3d coord class inherit, w/ get_3d()
-# 1) argparse output file option: allow custom output file, but use get_next_filename() to prevent o/w
-#   - prevent out_dir and anno_dir from being the same name (raise custom error?)
-#   - input validation (after merging with default values?)
-#   - pip install pathvalidate
+# 0) --2d/--3d input args
+# 1) .bat/sh files for click running
+# 2) shift-left click to add a note to the spreadsheet - use flags in mouse_callback
 # 3) add more error loggers
 # 4) location-aware text drawing, like how a right-click menu flows up or down from cursor
-# 5) function type hints
-# 6) update code whitespace based on GPSG
-# 7) add GUI (dropdown menus, sanitized text boxes) for options.json5?
-# 8) change ruler to 80 and wrap appropriately (maybe)
-
-# TO DO For someone that isn't me and knows Python UI development:
-#   convert this to use a dedicated UI and keyboard/mouse input library instead of OpenCV?
+# 5) update code whitespace based on GPSG
+# 6) change ruler to 80 and wrap appropriately (maybe)
 
 
-__version__ = '2023.10.2'
+__version__ = '2023.10.4'
 __author__ = 'Logan Orians'
 
 
@@ -49,12 +41,15 @@ import platform
 #import re
 import string
 import time
-import tkinter as tk #screen resolution
-import types #for SimpleNamespace
+import tkinter as tk
+import types
+from typing import Any, TypeVar
 
 import cv2
-import openpyxl #Excel engine
-import pytesseract #Tesseract-OCR wrapper
+import openpyxl
+import pytesseract
+
+import options_gui
 
 
 class FilePath:
@@ -115,56 +110,84 @@ class SpreadSheet(FilePath):
             wb.save(str(self))
 
 
-class AnnoTation(FilePath):
+class AnnotationManager(FilePath):
     def __init__(self, directory):
         super().__init__(directory)
-        self.anno_text = ''
-        self.typing = False
-        self.enter_time = 0
-        self.show_anno = False
-        self.write_anno = False
         self.anno_pos = (0, 0)
+        self.anno_text = ''
+        self.enter_time = 0
+        self.filename = ''
+        self.frame = None
+        self.show_anno = False
         self.timestamp_time = ''
+        self.typing = False
+        self.write_anno = False
 
     def start_typing(self, x, y, timestamp_time):
-        self.typing = True
+        self.anno_pos = (x, y)
         self.anno_text = ''
         self.enter_time = 0
-        self.show_anno = True
-        self.write_anno = False
-        self.anno_pos = (x, y)
-        self.timestamp_time = timestamp_time
         self.filename = f"{timestamp_time.replace(':', '-')}.jpg"
         self._prevent_filename_overwrite()
+        self.show_anno = True
+        self.timestamp_time = timestamp_time
+        self.typing = True
+        self.write_anno = False
 
     def _prevent_filename_overwrite(self):
         """Gets next available filename (to avoid overwriting image at same timestamp)."""
 
         root, ext = os.path.splitext(self.filename) #get name and extension
-        count = 0
+        num = 0
         while os.path.exists(self.directory + self.filename):
-            count += 1
-            self.filename = f"{root}_{count}{ext}"
+            num += 1
+            self.filename = f"{root}_{num}{ext}"
 
 
-def get_next_filename(filename):
-    """Gets next available filename (to avoid overwriting image at same timestamp).
+class CoordinateManager():
+    def __init__(self, three_d=False):
+        self._coord = ()
+        self.start_time = 0
+        self._three_d = three_d
 
-    Args:
-        filename (str): the proposed filename
+    @property
+    def coord(self):
+        return self._coord
+    
+    @coord.setter
+    def coord(self, x_and_y):
+        if self._three_d:
+            self._coord = self._get_3d_from_2d(*x_and_y)
+        else:
+            self._coord = x_and_y
 
-    Returns:
-        new_file (str): a filename that will not overwrite an existing file
-    """
+    @staticmethod
+    def _get_3d_from_2d(x, y):
+        return (x, y)
 
-    new_file = filename
-    root, ext = os.path.splitext(filename)
-    count = 0
-    while os.path.exists(new_file):
-        count += 1
-        new_file = f"{root}_{count}{ext}"
 
-    return new_file
+def mouse_input(event, x, y, flags, param):
+    del flags # Unused.
+
+    coord, anno, sheet = param
+
+    if not anno.typing: #if user *isn't* typing annotation
+        if event == cv2.EVENT_LBUTTONDOWN: #left mouse click
+            coord.start_time = time.time()
+            coord.coord = (x, y)
+            timestamp_date, timestamp_time = get_timestamp(anno.frame)
+
+            data = [timestamp_date, timestamp_time, f"({x}, {y})"] #format data
+            sheet.append_to_spreadsheet(data)
+
+            # Print timestamp and coordinates in case .xlsx gets corrupted
+            print(timestamp_date)
+            print(timestamp_time)
+            print(f"{str(coord.coord)}\n")
+
+        elif event == cv2.EVENT_RBUTTONDOWN: #right mouse click
+            _, timestamp_time = get_timestamp(anno.frame)
+            anno.start_typing(x, y, timestamp_time)
 
 
 def get_timestamp(frame):
@@ -212,49 +235,6 @@ def get_set_proper_dir(argument):
     return argument
 
 
-def set_up_spreadsheet(outfile_path, headers):
-    """Sets up the output spreadsheet by adding bolded headers to columns.
-
-    Args:
-        outfile_path (str): the filepath to the Excel sheet
-        headers (list): the bolded column headers to be written
-    """
-
-    with contextlib.closing(openpyxl.workbook.Workbook()) as wb:
-        ws = wb.active
-        ws.append(headers)
-        for cell in ws['1:1']:
-            cell.font = openpyxl.styles.Font(bold=True) #make headers bold
-        wb.save(outfile_path)
-
-
-def append_to_spreadsheet(outfile_path, data):
-    """Appends data to spreadsheet located at outfile_path.
-
-    Args:
-        outfile_path (str): the filepath to the Excel sheet
-        data (list): the data to be appended
-    """
-
-    with contextlib.closing(openpyxl.load_workbook(outfile_path)) as wb: #open existing workbook
-        wb.active.append(data) #append data to sheet
-        wb.save(outfile_path) #save workbook
-
-
-def delete_last_coordinate(outfile_path):
-    """Deletes most recent coordinate from Excel sheet.
-        
-    Args:
-        outfile_path (str): the filepath to the Excel sheet
-    """
-
-    with contextlib.closing(openpyxl.load_workbook(outfile_path)) as wb:
-        ws = wb.active
-        last_row = ws.max_row
-        ws.delete_rows(last_row)
-        wb.save(outfile_path)
-
-
 def arg_parsing():
     """Parses input arguments; separate from main() because it's long.
 
@@ -263,77 +243,35 @@ def arg_parsing():
     """
 
     parser = argparse.ArgumentParser(
-        description='A coordinate displaying and writing program to track chicken behavior.')
-    parser.add_argument('video_path', help='File path to the video')
-    parser.add_argument('-od', '--out_dir', metavar='',
-        help='Name of output folder for Excel files (default: sheets/)')
-    parser.add_argument('-ad', '--anno_dir', metavar='',
-        help='Name of output folder for annotated images (default: annotated_images/)')
-    parser.add_argument('-e', '--exit_key', metavar='', help='Key to quit program (default: e)')
-    parser.add_argument('-c', '--clear_key', metavar='',
-        help='Key to remove coordinate from screen and Excel file (default: c)')
-    parser.add_argument('-d', '--duration', metavar='',
-        type=int, help='duration of coordinates on screen, in seconds (default: 5)')
-    
-    # Suppressed options: change in options.json5, except for --version
-    parser.add_argument('-f', '--font', type=int, help=argparse.SUPPRESS)
-    parser.add_argument('-fc', '--font_color', help=argparse.SUPPRESS)
-    parser.add_argument('-fs', '--font_scale', type=int, help=argparse.SUPPRESS)
-    parser.add_argument('-ft', '--font_thickness', type=int, help=argparse.SUPPRESS)
+        description='A program that displays and saves coordinates for tracking chicken behavior.')
+    parser.add_argument('-o', '--options', action='store_true',
+        help='Opens the GUI for setting program options.')
     parser.add_argument('--version', action='version',
         version=f"%(prog)s {__version__}", help=argparse.SUPPRESS)
 
     return parser.parse_args()
 
 
-def write_args_to_file(args, filename):
-    """Saves input arguments to file.
+def get_args_from_file(filename: str) -> dict[str, Any]:
+    """Gets program options from file.
 
     Args:
-        args (argparse.Namespace): arguments to be written to file
-        filename (str): .json file for writing
-    """
-
-    arg_separator = '*' * 62 + '\n'
-    info = [
-        '\n\n/*\n', arg_separator, '"font_color" must be of the form [R,G,B], where R,G,B <= 255.\n',
-        'You have 16.7 million options; here is the rainbow:\n', '\tred = [255, 0, 0]\n',
-        '\torange = [255, 165, 0]\n', '\tyellow = [255, 255, 0]\n',
-        '\tgreen (lime) = [0, 255, 0]\n', '\tblue = [0, 0, 255]\n', '\tindigo = [75, 0, 130]\n',
-        '\tviolet = [128, 0, 128]\n', arg_separator, '\n', arg_separator,
-        '"font" must be a number 0-7, or 16; feel free to try them out:\n',
-        '\t0: normal size sans-serif font (default)\n', '\t1: small size sans-serif font\n',
-        '\t2: normal size sans-serif font, complex\n', '\t3: normal size serif font\n',
-        '\t4: normal size serif font, complex\n', '\t5: small size serif font\n',
-        '\t6: hand-writing style font\n', '\t7: hand-writing style font, complex\n',
-        '\t16: italic font\n', arg_separator, '*/\n'
-    ]
-
-    with open(filename, 'w') as f:
-        json.dump(vars(args), f, indent=4)
-        f.writelines(info)
-
-
-def get_args_from_file(filename):
-    """Gets default optional arguments from file.
-
-    Args:
-        filename
+        filename: name of file that contains options
 
     Returns:
-        argparse.Namespace: arguments from file
+        args: arguments from file
     """
 
-    with open(filename, 'r') as f:
-        json_data = ''
-        for line in f:
-            #json_data += line
-            json_data = ''.join([json_data, line]) #GPSG 3.10
-            if '}' in line: #end of JSON object
-                break
-        args_dict = json.loads(json_data)
-
-    return argparse.Namespace(**args_dict)
+    try:
+        with open(filename, 'r') as f:
+            args = json.load(f)
+        return args
+    except OSError as e:
+        print(f'Error accessing file; please contact author: {e}')
+        raise
+    except json.JSONDecodeError as e:
+        print(f'Error decoding JSON, please contact author: {e}')
+        raise
 
 
 # TODO: get more info?
@@ -357,7 +295,7 @@ def get_system_info():
 
 
 def set_up_logger():
-    """ Sets up error logger with custom terminator to separate error entries.
+    """Sets up error logger with custom terminator to separate error entries.
 
     Returns:
         logger (logging.Logger): an instance of a logger object
@@ -374,7 +312,7 @@ def set_up_logger():
     return logger
 
 
-def set_window_dimensions(cap):
+def get_window_and_video_dims(cap):
     """Gets screen resolution and returns suitable window dimensions.
 
     Args:
@@ -397,11 +335,16 @@ def set_window_dimensions(cap):
     window_width = int(min(screen_width - 150, video_width)) #account for taskbar, etc.
     window_height = int(window_width / aspect_ratio)
 
-    return window_width, window_height
+    return window_width, window_height, video_width, video_height
 
 
 def main():
-    logger = set_up_logger() #set up main() error logger
+    
+    args = arg_parsing()
+    if args.options:
+        options_gui.main() #run GUI
+
+    logger = set_up_logger() #set up bad error logger
 
     system_date_time = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) #ISO 8601
     ascii_allowlist = string.printable[:-5] #OpenCV can only print up to <space>
@@ -409,107 +352,52 @@ def main():
     #point pytesseract to tesseract executable
     if platform.system() == 'Windows':
         pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+    
+    options_file = 'options.json'
+    prog_options = types.SimpleNamespace(**get_args_from_file(options_file))
+
+    # Set up arguments for program use
+    infile_path = prog_options.video_path.strip() #strip trailing space for MacOS
+    if prog_options.exit_key.lower() == 'esc':
+        exit_key = 27
+    else:
+        exit_key = ord(prog_options.exit_key)
+    clear_key = ord(prog_options.clear_key)
+    pause_key = ord(prog_options.pause_key)
+    duration = prog_options.duration #duration of coords and annos on screen, in seconds
+    font = types.SimpleNamespace(font=prog_options.font, scale=prog_options.font_scale,
+        color=tuple(prog_options.font_color), thickness=prog_options.font_thickness)
+
+    # Instantiate classes
+    #coord = types.SimpleNamespace(xy=(), start_time=0)
+    coord = CoordinateManager()
+    anno = AnnotationManager(f"{prog_options.anno_dir}/{system_date_time}")
+    headers = ['Date', 'Time', 'Coordinates']
+    sheet = SpreadSheet(prog_options.out_dir, system_date_time, headers)
+
+    # Determine delay to play video at normal speed
+    cap = cv2.VideoCapture(infile_path) #create Video Capture object
+    fps = cap.get(cv2.CAP_PROP_FPS) #get fps of cap input
+    if fps == 0:
+        fps = 25 #set default if determination fails
+    delay = int(1000 / fps) #calculate delay from fps, in ms
+
+    # Set up video window
+    w_width, w_height, v_width, v_height = get_window_and_video_dims(cap)
+    window_name = 'Video'
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL) #create named window to display cap
+    cv2.resizeWindow(window_name, width=w_width, height=w_height)
+
+    paused = False
+    callback_params = (coord, anno, sheet)
+    cv2.setMouseCallback(window_name, mouse_input, param=callback_params)
 
 
-    #TODO: move variable assignments out of try-except
     try:
-        # Merge default arguments with input, write to file
-        options_file = 'options.txt' #JSON5-formatted file
-        args = arg_parsing() #get arg Namespace object
-        defaults = get_args_from_file(options_file)
-        for key, val in vars(args).items():
-            if val == None:
-                setattr(args, key, getattr(defaults, key))
-        write_args_to_file(args, options_file) #write updated args to file
-
-
-        # Set up arguments for program use
-        infile_path = args.video_path.strip() #strip trailing space for MacOS compatibility
-        if args.exit_key == 'Esc' or args.exit_key == 'esc':
-            exit_key = 27
-        else:
-            exit_key = ord(args.exit_key)
-        clear_key = ord(args.clear_key)
-        duration = args.duration #duration of coordinates and annotations on screen, in seconds
-        font = types.SimpleNamespace(font=args.font, scale=args.font_scale,
-            color=tuple(args.font_color), thickness=args.font_thickness)
-
-
-        # Instantiate classes/Create NameSpaces
-        coord = types.SimpleNamespace(xy=(), start_time=0)
-        anno = AnnoTation(f"{args.anno_dir}/{system_date_time}")
-        headers = ['Date', 'Time', 'Coordinates']
-        sheet = SpreadSheet(args.out_dir, system_date_time, headers)
-        #mcb_handler = MouseCallbackHandler(coord, anno, sheet)
-
-        # Determine delay to play video at normal speed
-        cap = cv2.VideoCapture(infile_path) #create Video Capture object
-        fps = cap.get(cv2.CAP_PROP_FPS) #get fps of cap input
-        if fps == 0:
-            fps = 25 #set default if determination fails
-        delay = int(1000 / fps) #calculate delay from fps, in ms
-
-
-        # Set up video window
-        window_width, window_height = set_window_dimensions(cap)
-        window_name = 'Video'
-        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL) #create named window to display cap
-        cv2.resizeWindow(window_name, width=window_width, height=window_height)
-
-        frame = None
-        def mouse_input(event, x, y, flags, param):
-            del flags, param # Unused.
-
-            if not anno.typing: #if user *isn't* typing annotation
-                if event == cv2.EVENT_LBUTTONDOWN: #left mouse click
-                    coord.start_time = time.time()
-                    coord.xy = (x, y)
-                    timestamp_date, timestamp_time = get_timestamp(frame)
-
-                    data = [timestamp_date, timestamp_time, f"({x}, {y})"] #format data
-                    sheet.append_to_spreadsheet(data)
-
-                    # Print timestamp and coordinates in case .xlsx gets corrupted
-                    print(timestamp_date)
-                    print(timestamp_time)
-                    print(f"{str(coord.xy)}\n")
-
-                elif event == cv2.EVENT_RBUTTONDOWN: #right mouse click
-                    _, timestamp_time = get_timestamp(frame)
-                    anno.start_typing(x, y, timestamp_time)
-
-        cv2.setMouseCallback(window_name, mouse_input)
-
-        frame = None
-        def mouse_input(event, x, y, flags, param):
-            del flags, param # Unused.
-
-            if not anno.typing: #if user *isn't* typing annotation
-                if event == cv2.EVENT_LBUTTONDOWN: #left mouse click
-                    coord.start_time = time.time()
-                    coord.xy = (x, y)
-                    timestamp_date, timestamp_time = get_timestamp(frame)
-
-                    data = [timestamp_date, timestamp_time, f"({x}, {y})"] #format data
-                    sheet.append_to_spreadsheet(data)
-
-                    # Print timestamp and coordinates in case .xlsx gets corrupted
-                    print(timestamp_date)
-                    print(timestamp_time)
-                    print(f"{str(coord.xy)}\n")
-
-                elif event == cv2.EVENT_RBUTTONDOWN: #right mouse click
-                    _, timestamp_time = get_timestamp(frame)
-                    anno.start_typing(x, y, timestamp_time)
-
-        cv2.setMouseCallback(window_name, mouse_input)
-
-        paused = False
-        pause_key = ord('p')
-
         while cap.isOpened():
-            ret, frame = cap.read() #get cap frame-by-frame
-            if ret:
+            if not paused:
+                ret, anno.frame = cap.read() #get cap frame-by-frame
+                if not ret: break
                 
                 # Get LSByte of keypress for cross-platform compatibility
                 key_press = cv2.waitKey(delay) & 0xFF
@@ -523,57 +411,63 @@ def main():
                         anno.show_anno = False
                         anno.anno_text = ''
 
-                # Prevent coords from popping back up after annotation is entered
-                if anno.typing:
-                    coord.xy = ()
+            # Prevent coords from popping back up after annotation is entered
+            if anno.typing:
+                coord.coord = ()
 
-                # Only allow deletion of [date, time, coord] when on screen
-                if coord.xy:
-                    if key_press == clear_key:
-                        coord.xy = ()
-                        sheet.delete_last_coordinate()
-                    elif (time.time() - coord.start_time < duration): #on-screen coordinate timeout
-                        cv2.putText(frame, str(coord.xy), coord.xy,
+            # Only allow deletion of [date, time, coord] when on screen
+            if coord.coord:
+                frame_copy = anno.frame.copy() #clearing looks better
+                if key_press == clear_key:
+                    coord.coord = ()
+                    sheet.delete_last_coordinate()
+                elif (time.time() - coord.start_time < duration): #on-screen coordinate timeout
+                    if paused:
+                        cv2.putText(frame_copy, str(coord.coord), coord.coord[:2],
+                            font.font, font.scale, font.color, font.thickness)
+                    else:
+                        cv2.putText(anno.frame, str(coord.coord), coord.coord[:2],
                             font.font, font.scale, font.color, font.thickness)
 
-                # This while loop ensures that the video is paused while annotating
-                while anno.typing:
-                    frame_copy = frame.copy() #get copy of frame so backspace works
-
-                    # Display frame with annotation
-                    if anno.show_anno:
-                        cv2.putText(frame_copy, anno.anno_text,
-                            anno.anno_pos, font.font, font.scale,
-                            font.color, font.thickness)
-                        cv2.imshow(window_name, frame_copy)
-
-                    key_press = cv2.waitKey(0) & 0xFF #get LSByte of keypress for cross-platform compatibility
-                    if key_press != 255:
-                        if key_press == 13: #Enter
-                            anno.typing = False
-                            anno.write_anno = True
-                            anno.enter_time = time.time()
-                        elif key_press == 27: #Esc
-                            anno.typing = False
-                            anno.show_anno = False
-                            anno.anno_text = ''
-                        elif key_press == 8: #Backspace
-                            if anno.anno_text: #DON'T COMBINE INTO ^ELIF
-                                anno.anno_text = anno.anno_text[:-1]
-                        elif chr(key_press) in ascii_allowlist: #printable ascii chars
-                            anno.anno_text += chr(key_press)
-                            anno.show_anno = True
+            # This while loop ensures that the video is paused while annotating
+            while anno.typing:
+                frame_copy = anno.frame.copy() #get copy of frame so backspace works
 
                 if anno.show_anno:
-                    cv2.putText(frame, anno.anno_text,
+                    cv2.putText(frame_copy, anno.anno_text,
+                        anno.anno_pos, font.font, font.scale,
+                        font.color, font.thickness)
+                    cv2.imshow(window_name, frame_copy)
+
+                key_press = cv2.waitKey(0) & 0xFF #LSByte for cross-plat compat
+                if key_press != 255:
+                    if key_press == 13: #Enter
+                        anno.typing = False
+                        anno.write_anno = True
+                        anno.enter_time = time.time()
+                    elif key_press == 27: #Esc
+                        anno.typing = False
+                        anno.show_anno = False
+                        anno.anno_text = ''
+                    elif key_press == 8: #Backspace
+                        if anno.anno_text: #DON'T COMBINE INTO ^ELIF
+                            anno.anno_text = anno.anno_text[:-1]
+                    elif chr(key_press) in ascii_allowlist: #printable ascii
+                        anno.anno_text += chr(key_press)
+                        anno.show_anno = True
+
+            if anno.show_anno:
+                if paused:
+                    cv2.putText(frame_copy, anno.anno_text,
+                        anno.anno_pos, font.font,
+                        font.scale, font.color, font.thickness)
+                else:
+                    cv2.putText(anno.frame, anno.anno_text,
                         anno.anno_pos, font.font,
                         font.scale, font.color, font.thickness)
 
-            #this looks unnecessary but it's the only way for things to be clean
-            if paused and (coord.xy or anno.show_anno):
-                cv2.imshow(window_name, frame_copy) #show video frame
-            else:
-                cv2.imshow(window_name, frame) #show video frame
+            if not(paused and (coord.coord or anno.show_anno)):
+                cv2.imshow(window_name, anno.frame) #show video frame
 
     except Exception as e:
         logger.error('\nError: %s\n', e, exc_info=True)
