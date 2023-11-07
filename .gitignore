@@ -1,6 +1,6 @@
-.pylintrc
-/annotated_images/
-/sheets/
+annotated_images/
+sheets/
+__pycache__/
 ascii_test.py
 error_log.txt
-options1.txt
+.pylintrc
