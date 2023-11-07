@@ -458,14 +458,45 @@ def get_windows_theme() -> str:
         return 'light'
 
 
+def get_macos_theme() -> str:
+    """Determines the MacOS system theme via an OSAscipt.
+
+    Returns:
+        'light' | 'dark': theme value
+    """
+
+    try:
+        import subprocess
+        cmd = (
+            'tell application "System Events" to '
+            'tell appearance preferences to return dark mode'
+        )
+        res = subprocess.run(['osascript', '-e', cmd],
+            capture_output=True, text=True)
+        if res.stdout.strip() == 'true': return 'dark'
+        else: return 'light'
+    except subprocess.CalledProcessError as e:
+        print(f'Non-zero exit status: {e.returncode}\nContact author.')
+        return 'light'
+    except FileNotFoundError as e:
+        print(f'OSAscript command not found: {e}\nContact author.')
+        return 'light'
+    except Exception as e:
+        print(f'Error: {e}\nContact author.')
+        return 'light'
+
+
 def main():
     # Set up GUI window
     root = tk.Tk()
     root.title('ChickenMap Options')
     root.tk.call('source', 'tcl_theme/azure.tcl')
+
     sys_theme = 'light'
     if platform.system() == 'Windows':
         sys_theme = get_windows_theme()
+    elif platform.system() == 'Darwin':
+        sys_theme = get_macos_theme()
     root.tk.call('set_theme', sys_theme)
     frame = ttk.Frame(root)
     frame.grid(row=0, column=0, padx=6, pady=6)
