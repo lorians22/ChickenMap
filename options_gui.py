@@ -22,11 +22,10 @@ __author__ = 'Logan Orians'
 
 
 #TODO on unpaid time:
-# 1) convert to class (might be cleaner)
+# 1) convert to class (might be cleaner/shorter)
 # 2) "When catching operating system errors,
 #    prefer the explicit exception hierarchy introduced in Python 3.3
 #    over introspection of errno values."
-# 3) Convert certain variables (actually constants) to proper naming convention
 
 
 import ast
@@ -104,7 +103,7 @@ def clear_error(name: str, err_msgs: dict[str, str], label_err: TLabel) -> None:
 
 
 def add_error(name: str, message: str, err_msgs: dict[str, str],
-    label_err: TLabel) -> None:
+              label_err: TLabel) -> None:
     """Adds error message to label_err.
 
     Args:
@@ -168,7 +167,7 @@ def pick_file(file_var: TStringVar) -> None:
 
 
 def pick_color(font_vars: list[TStringVar], canvas: TCanvas,
-    sys_theme: str) -> None:
+               sys_theme: str) -> None:
     """Callback function to choose a color and update the cv2 font preview.
 
     Args:
@@ -183,7 +182,7 @@ def pick_color(font_vars: list[TStringVar], canvas: TCanvas,
 
 
 def set_defaults(default_vars: list[TStringVar], canvas: TCanvas,
-    sys_theme: str) -> None:
+                 sys_theme: str) -> None:
     """Callback function to populate input fields with default values.
 
     Args:
@@ -203,12 +202,11 @@ def set_defaults(default_vars: list[TStringVar], canvas: TCanvas,
     default_vars[9].set('1.0') #font scale
     default_vars[10].set('2') #font thickness
     
-    
     update_font_preview(default_vars[7:], canvas, sys_theme)
 
 
 def save_options(root: TRoot, option_vars: list[TStringVar], label_ack: TLabel,
-    err_msgs: dict[str, str]) -> None:
+                 err_msgs: dict[str, str]) -> None:
     """Formats user entries for writing to file.
 
     Args:
@@ -240,7 +238,7 @@ def save_options(root: TRoot, option_vars: list[TStringVar], label_ack: TLabel,
 
 
 def update_font_preview(font_vars: list[TStringVar], canvas: TCanvas,
-    sys_theme: str) -> None:
+                        sys_theme: str) -> None:
     """Updates the cv2 font preview when a font option is modified.
 
     Args:
@@ -273,7 +271,7 @@ def update_font_preview(font_vars: list[TStringVar], canvas: TCanvas,
 
 
 def validate_duration(var: TStringVar, err_msgs: dict[str, str],
-    label_err: TLabel) -> None:
+                      label_err: TLabel) -> None:
     """Callback function to validate duration input and add error if invalid.
 
     Args:
@@ -289,13 +287,13 @@ def validate_duration(var: TStringVar, err_msgs: dict[str, str],
         clear_error('Duration', err_msgs, label_err)
     except ValueError:
         add_error('Duration',
-            'Please enter a value between 1 and 60 for Duration.',
-            err_msgs, label_err)
+                  'Please enter a value between 1 and 60 for Duration.',
+                  err_msgs, label_err)
 
 
 def validate_scale(var: TStringVar, font_vars: list[TStringVar],
-    err_msgs: dict[str, str], label_err: TLabel, canvas: TCanvas,
-    sys_theme: str) -> None:
+                   err_msgs: dict[str, str], label_err: TLabel, canvas: TCanvas,
+                   sys_theme: str) -> None:
     """Callback function to validate scale input and add error if invalid.
 
     Args:
@@ -315,13 +313,13 @@ def validate_scale(var: TStringVar, font_vars: list[TStringVar],
             update_font_preview(font_vars, canvas, sys_theme) #update preview
     except ValueError:
         add_error('Font Scale',
-            'Please enter a value between 0 and 2.5 for Scale.',
-            err_msgs, label_err)
+                  'Please enter a value between 0 and 2.5 for Scale.',
+                  err_msgs, label_err)
 
 
 def validate_thickness(var: TStringVar, font_vars: list[TStringVar],
-    err_msgs: dict[str, str], label_err: TLabel, canvas: TCanvas,
-    sys_theme: str) -> None:
+                       err_msgs: dict[str, str], label_err: TLabel,
+                       canvas: TCanvas, sys_theme: str) -> None:
     """Callback function to validate thickness input and add error if invalid.
 
     Args:
@@ -340,12 +338,12 @@ def validate_thickness(var: TStringVar, font_vars: list[TStringVar],
             update_font_preview(font_vars, canvas, sys_theme)
     except ValueError:
         add_error('Font Thickness',
-            'Please enter a positive integer for Font Thickness.',
-            err_msgs, label_err)
+                  'Please enter a positive integer for Font Thickness.',
+                  err_msgs, label_err)
 
 
 def validate_keys(err_msgs: dict[str, str], label_err: TLabel,
-    approved_keys: str, key_vars: list[TStringVar]) -> None:
+                  approved_keys: str, key_vars: list[TStringVar]) -> None:
     """Callback wrapper func to check all key inputs for invalid/repeated keys.
 
     Args:
@@ -359,15 +357,16 @@ def validate_keys(err_msgs: dict[str, str], label_err: TLabel,
     key_var_vals = [key_var.get() for key_var in key_vars]
 
     validate_key(key_var_vals[0], 'Exit Key', err_msgs, label_err,
-        approved_keys, key_var_vals[1:])
+                 approved_keys, key_var_vals[1:])
     validate_key(key_var_vals[1], 'Clear Key', err_msgs, label_err,
-        approved_keys, key_var_vals[::2])
+                 approved_keys, key_var_vals[::2])
     validate_key(key_var_vals[2], 'Pause Key', err_msgs, label_err,
-        approved_keys, key_var_vals[:2])
+                 approved_keys, key_var_vals[:2])
 
 
 def validate_key(val: str, name: str, err_msgs: dict[str, str],
-    label_err: TLabel, approved_keys: str, other_key_vals: list[str]) -> None:
+                 label_err: TLabel, approved_keys: str,
+                 other_key_vals: list[str]) -> None:
     """Validates key input and adds error if invalid.
 
     Args:
@@ -380,19 +379,17 @@ def validate_key(val: str, name: str, err_msgs: dict[str, str],
     """
 
     try:
-        
         if val in other_key_vals:
             raise ValueError('Please do not reuse the same key.')
         if not(len(val) == 1 and val in approved_keys) and val.lower() != 'esc':
             raise ValueError(f'For {name}, enter one key a-z/0-9, or type Esc.')
         clear_error(name, err_msgs, label_err)
-        
     except ValueError as e:
         add_error(name, str(e), err_msgs, label_err)
 
 
 def validate_dir(var: TStringVar, name: str, err_msgs: dict[str, str],
-    label_err: TLabel) -> None:
+                 label_err: TLabel) -> None:
     """Callback function to validate directory input and add error if invalid.
 
     Args:
@@ -410,8 +407,8 @@ def validate_dir(var: TStringVar, name: str, err_msgs: dict[str, str],
             raise ValueError
         clear_error(name, err_msgs, label_err)
     except ValueError:
-        add_error(name, f'{name} cannot contain < > : " | ? *',
-            err_msgs, label_err)
+        add_error(name, f'{name} cannot contain < > : " | ? *', err_msgs,
+                  label_err)
 
 
 def clear_label(label: TLabel) -> None:
@@ -443,8 +440,9 @@ def get_windows_theme() -> str:
 
     try:
         import winreg
-        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
-            r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize')
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            R'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize')
         theme = winreg.QueryValueEx(key, "AppsUseLightTheme")
         winreg.CloseKey(key)
 
@@ -469,10 +467,9 @@ def get_macos_theme() -> str:
         import subprocess
         cmd = (
             'tell application "System Events" to '
-            'tell appearance preferences to return dark mode'
-        )
+            'tell appearance preferences to return dark mode')
         res = subprocess.run(['osascript', '-e', cmd],
-            capture_output=True, text=True)
+                             capture_output=True, text=True)
         if res.stdout.strip() == 'true': return 'dark'
         else: return 'light'
     except subprocess.CalledProcessError as e:
@@ -490,14 +487,17 @@ def main():
     # Set up GUI window
     root = tk.Tk()
     root.title('ChickenMap Options')
-    root.tk.call('source', 'tcl_theme/azure.tcl')
 
-    sys_theme = 'light'
+    # Set up GUI theme
+    root.tk.call('source', 'tcl_theme/azure.tcl')
     if platform.system() == 'Windows':
         sys_theme = get_windows_theme()
     elif platform.system() == 'Darwin':
         sys_theme = get_macos_theme()
+    else:
+        sys_theme = 'light'
     root.tk.call('set_theme', sys_theme)
+
     frame = ttk.Frame(root)
     frame.grid(row=0, column=0, padx=6, pady=6)
 
@@ -520,93 +520,101 @@ def main():
     video_var = tk.StringVar(value=saved_args['video_path'])
     option_vars.append(video_var)
     video_entry = ttk.Entry(frame, textvariable=video_var, state='readonly',
-        width=width)
+                            width=width)
     video_entry.grid(row=label_video.grid_info()['row'], column=1, pady=3)
     video_button = ttk.Button(frame, text='Browse', width=7,
-        command=lambda: pick_file(video_var))
+                              command=lambda: pick_file(video_var))
     video_button.grid(row=video_entry.grid_info()['row']+1, column=1, pady=3)
 
     label_out_folders = ttk.Label(frame, text='Output Folders', font=bold_font)
     label_out_folders.grid(row=video_button.grid_info()['row']+1, column=0,
-        sticky='W')
+                           sticky='W')
 
     label_sheet = ttk.Label(frame, text='Spreadsheet folder:')
     label_sheet.grid(row=label_out_folders.grid_info()['row']+1, column=0,
-        sticky='W', padx=(20, 0), pady=2)
+                     sticky='W', padx=(20, 0), pady=2)
     sheet_var = tk.StringVar(value=saved_args['out_dir'])
     entry_sheet = ttk.Entry(frame, textvariable=sheet_var, width=width)
     entry_sheet.grid(row=label_sheet.grid_info()['row'], column=1, pady=3)
-    sheet_var.trace_add('write', lambda *args: validate_dir(
-        sheet_var, 'Spreadsheet Directory', err_msgs, label_err))
+    sheet_var.trace_add('write',
+                        lambda *args: validate_dir(
+                            sheet_var, 'Spreadsheet Directory', err_msgs,
+                            label_err))
     option_vars.append(sheet_var)
 
     label_anno = ttk.Label(frame, text='Annotated images folder:')
     label_anno.grid(row=label_sheet.grid_info()['row']+1, column=0,
-        sticky='W', padx=(20, 0), pady=2)
+                    sticky='W', padx=(20, 0), pady=2)
     anno_var = tk.StringVar(value=saved_args['anno_dir'])
     entry_anno = ttk.Entry(frame, textvariable=anno_var, width=width)
     entry_anno.grid(row=label_anno.grid_info()['row'], column=1, pady=3)
-    anno_var.trace_add('write', lambda *args: validate_dir(
-        anno_var, 'Annotation Directory', err_msgs, label_err))
+    anno_var.trace_add('write',
+                       lambda *args: validate_dir(
+                           anno_var, 'Annotation Directory', err_msgs,
+                           label_err))
     option_vars.append(anno_var)
 
     label_keys = ttk.Label(frame, text='Program Keys & Options', font=bold_font)
     label_keys.grid(row=label_anno.grid_info()['row']+1, column=0,
-        sticky='W')
+                    sticky='W')
 
     label_exit_key = ttk.Label(frame, text='Exit key:')
     label_exit_key.grid(row=label_keys.grid_info()['row']+1, column=0,
-        sticky='W', padx=(20, 0), pady=2)
+                        sticky='W', padx=(20, 0), pady=2)
     exit_key_var = tk.StringVar(value=saved_args['exit_key'])
     entry_exit_key = ttk.Entry(frame, textvariable=exit_key_var, width=width)
     entry_exit_key.grid(row=label_exit_key.grid_info()['row'],
-        column=1, pady=3)
-    exit_key_var.trace_add('write', lambda *args: validate_keys(
-        err_msgs, label_err, approved_keys, key_vars))
+                        column=1, pady=3)
+    exit_key_var.trace_add('write',
+                           lambda *args: validate_keys(
+                               err_msgs, label_err, approved_keys, key_vars))
     option_vars.append(exit_key_var)
 
     label_clear_key = ttk.Label(frame, text='Clear key:')
     label_clear_key.grid(row=label_exit_key.grid_info()['row']+1, column=0,
-        sticky='W', padx=(20, 0), pady=2)
+                         sticky='W', padx=(20, 0), pady=2)
     clear_key_var = tk.StringVar(value=saved_args['clear_key'])
     entry_clear_key = ttk.Entry(frame, textvariable=clear_key_var, width=width)
     entry_clear_key.grid(row=label_clear_key.grid_info()['row'],
-        column=1, pady=3)
-    clear_key_var.trace_add('write', lambda *args: validate_keys(
-        err_msgs, label_err, approved_keys, key_vars))
+                         column=1, pady=3)
+    clear_key_var.trace_add('write',
+                            lambda *args: validate_keys(
+                                err_msgs, label_err, approved_keys, key_vars))
     option_vars.append(clear_key_var)
 
     label_pause_key = ttk.Label(frame, text='Pause key:')
     label_pause_key.grid(row=label_clear_key.grid_info()['row']+1, column=0,
-        sticky='W', padx=(20, 0), pady=2)
+                         sticky='W', padx=(20, 0), pady=2)
     pause_key_var = tk.StringVar(value=saved_args['pause_key'])
     entry_pause_key = ttk.Entry(frame, textvariable=pause_key_var, width=width)
     entry_pause_key.grid(row=label_pause_key.grid_info()['row'],
-        column=1, pady=3)
-    pause_key_var.trace_add('write', lambda *args: validate_keys(
-        err_msgs, label_err, approved_keys, key_vars))
+                         column=1, pady=3)
+    pause_key_var.trace_add('write',
+                            lambda *args: validate_keys(
+                                err_msgs, label_err, approved_keys, key_vars))
     option_vars.append(pause_key_var)
 
     label_duration = ttk.Label(frame, text='Coordinate duration:')
     label_duration.grid(row=label_pause_key.grid_info()['row']+1, column=0,
-        sticky='W', padx=(20, 0), pady=2)
+                        sticky='W', padx=(20, 0), pady=2)
     duration_var = tk.StringVar(value=saved_args['duration'])
     spinbox_duration = ttk.Spinbox(frame, from_=1, to=60, increment=1,
-        textvariable=duration_var, width=width)
+                                   textvariable=duration_var, width=width)
     spinbox_duration.grid(row=label_duration.grid_info()['row'],
-        column=1, pady=3)
-    duration_var.trace_add('write', lambda *args: validate_duration(
-        duration_var, err_msgs, label_err))
+                          column=1, pady=3)
+    duration_var.trace_add('write',
+                           lambda *args: validate_duration(
+                               duration_var, err_msgs, label_err))
     option_vars.append(duration_var)
 
     label_keys = ttk.Label(frame, text='Font Options', font=bold_font)
     label_keys.grid(row=label_duration.grid_info()['row']+1, column=0,
-        sticky='W')
+                    sticky='W')
 
     # Drop-down menu
     label_font = ttk.Label(frame, text='Font:')
     label_font.grid(row=label_keys.grid_info()['row']+1, column=0,
-        sticky='W', padx=(20, 0))
+                    sticky='W', padx=(20, 0))
     font_options = (
         'FONT_HERSHEY_SIMPLEX',
         'FONT_HERSHEY_PLAIN',
@@ -615,12 +623,12 @@ def main():
         'FONT_HERSHEY_TRIPLEX',
         'FONT_HERSHEY_COMPLEX_SMALL',
         'FONT_HERSHEY_SCRIPT_SIMPLEX',
-        'FONT_HERSHEY_SCRIPT_COMPLEX',
-    )
+        'FONT_HERSHEY_SCRIPT_COMPLEX')
     font_value = font_options[saved_args['font']]
     font_var = tk.StringVar(value=font_value)
     font_menu = ttk.OptionMenu(frame, font_var, font_value, *font_options,
-        command=lambda *args: update_font_preview(font_vars, canvas, sys_theme))
+                               command=lambda *args: update_font_preview(
+                                   font_vars, canvas, sys_theme))
     font_menu.config(width=29)
     font_menu.grid(row=label_font.grid_info()['row'], column=1, pady=3)
     option_vars.append(font_var)
@@ -628,43 +636,49 @@ def main():
     # Color picker
     label_font_color = ttk.Label(frame, text='Font Color:')
     label_font_color.grid(row=label_font.grid_info()['row']+1, column=0,
-        sticky='W', padx=(20, 0))
+                          sticky='W', padx=(20, 0))
     color_var = tk.StringVar(value=saved_args['font_color'])
     option_vars.append(color_var)
     color_button = ttk.Button(frame, text='Pick Font Color', width=14,
-        command=lambda: pick_color(font_vars, canvas, sys_theme))
+                              command=lambda: pick_color(
+                                  font_vars, canvas, sys_theme))
     color_button.grid(row=label_font_color.grid_info()['row'],
-        column=1, pady=3)
+                      column=1, pady=3)
 
     label_font_scale = ttk.Label(frame, text='Font Scale:')
     label_font_scale.grid(row=label_font_color.grid_info()['row']+1, column=0,
-        sticky='W', padx=(20, 0))
+                          sticky='W', padx=(20, 0))
     font_scale_var = tk.StringVar(value=saved_args['font_scale'])
     spinbox_font_scale = ttk.Spinbox(frame, from_=0.1, to=2.5, increment=0.1,
-        textvariable=font_scale_var, width=width)
+                                     textvariable=font_scale_var, width=width)
     spinbox_font_scale.grid(row=label_font_scale.grid_info()['row'],
-        column=1, pady=3)
-    font_scale_var.trace_add('write', lambda *args: validate_scale(
-        font_scale_var, font_vars, err_msgs, label_err, canvas, sys_theme))
+                            column=1, pady=3)
+    font_scale_var.trace_add('write',
+                             lambda *args: validate_scale(
+                                 font_scale_var, font_vars, err_msgs, label_err,
+                                 canvas, sys_theme))
     option_vars.append(font_scale_var)
 
     label_font_thickness = ttk.Label(frame, text='Font Thickness:')
     label_font_thickness.grid(row=label_font_scale.grid_info()['row']+1,
-        column=0, sticky='W', padx=(20, 0))
+                              column=0, sticky='W', padx=(20, 0))
     font_thickness_var = tk.StringVar(value=saved_args['font_thickness'])
     spinbox_font_thickness = ttk.Spinbox(frame, from_=1, to=5, increment=1,
-        textvariable=font_thickness_var, width=width)
+                                         textvariable=font_thickness_var,
+                                         width=width)
     spinbox_font_thickness.grid(row=label_font_thickness.grid_info()['row'],
-        column=1, pady=3)
-    font_thickness_var.trace_add('write', lambda *args: validate_thickness(
-        font_thickness_var, font_vars, err_msgs, label_err, canvas, sys_theme))
+                                column=1, pady=3)
+    font_thickness_var.trace_add('write',
+                                 lambda *args: validate_thickness(
+                                     font_thickness_var, font_vars, err_msgs,
+                                     label_err, canvas, sys_theme))
     option_vars.append(font_thickness_var)
 
 
     # Error Label
     label_err = ttk.Label(frame, foreground='red')
     label_err.grid(row=label_font_thickness.grid_info()['row']+1,
-        column=1, columnspan=2)
+                   column=1, columnspan=2)
 
 
     # Create sliced option_vars lists (avoids find+replace shenanigans)
@@ -687,25 +701,26 @@ def main():
 
     # Reset to defaults button
     default_button = ttk.Button(default_frame, text='Defaults',
-        command=lambda: set_defaults(option_vars, canvas))
+                                command=lambda: set_defaults(
+                                    option_vars, canvas))
     default_button.grid(row=0, column=0, padx=6, pady=(0, 6))
 
     # Save options button
     save_button = ttk.Button(save_close_frame, text='Save',
-        command=lambda: save_options(root, option_vars, label_ack,
-            err_msgs))
+                             command=lambda: save_options(
+                                 root, option_vars, label_ack, err_msgs))
     save_button.grid(row=0, column=2, pady=(0, 6))
 
     # Close program button
     close_button = ttk.Button(save_close_frame, text='Close',
-        command=lambda: close_window(root))
+                              command=lambda: close_window(root))
     close_button.grid(row=0, column=3, padx=6, pady=(0, 6))
 
 
     # Acknowledgement Label
     label_ack = ttk.Label(save_close_frame, foreground='green')
     label_ack.grid(row=save_button.grid_info()['row'], column=0,
-        padx=6, pady=(0, 6))
+                   padx=6, pady=(0, 6))
 
     root.mainloop()
 
