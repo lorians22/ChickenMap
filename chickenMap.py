@@ -13,19 +13,19 @@ No implied support or warranty.
 
 # Date: 07/13/23
 
-# requirements: pip install -r requirements.txt
-# py chickenMap.py <path_to_video>
-#         ^You can drag a video file from Explorer/Finder into this window and press Enter.
-# ex. py chickenMap.py test.mp4
+# requirements: pip3 install -r requirements.txt
+
+# Run Program
+# Windows:      py chickenMap.py
+# MacOS:        python3 chickenMap.py
 
 # TODO:
-# 0) --2d/--3d input args
+# 0) --3d input arg + GUI; aviary/floor
 # 1) .bat/sh files for click running
-# 2) shift-left click to add a note to the spreadsheet - use flags in mouse_callback
+# 2) shift-left click to add a note to the spreadsheet - use flags in mouse_cb
 # 3) add more error loggers
-# 4) location-aware text drawing, like how a right-click menu flows up or down from cursor
-# 5) update code whitespace based on GPSG
-# 6) change ruler to 80 and wrap appropriately (maybe)
+# 4) location-aware text drawing; how right-click menu flows up/down from cursor
+# 6) remove parentheses where unncessary
 
 
 __version__ = '2023.10.4'
@@ -47,58 +47,62 @@ from typing import Any, TypeVar
 
 import cv2
 import openpyxl
-import pytesseract
+import pytesseract # type: ignore
 
 import options_gui
 
 
+TVideoCapture = TypeVar('TVideoCapture', bound=cv2.VideoCapture)
+
+
 class FilePath:
-    def __init__(self, directory):
+    def __init__(self, directory: str) -> None:
         self.directory = self._make_proper_path(directory)
         self.filename = ''
 
     @staticmethod
-    def _make_proper_path(directory):
+    def _make_proper_path(directory: str) -> str:
         #lstrip() and rstrip()? needs testing
-        if not directory.endswith('/') and not directory.endswith('\\'): directory += '/'
+        if not directory.endswith('/') and not directory.endswith('\\'):
+            directory += '/'
         if not os.path.exists(directory): os.makedirs(directory)
 
         return directory
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.directory}{self.filename}"
 
 
 class SpreadSheet(FilePath):
-    def __init__(self, directory, filename, headers):
+    def __init__(self, directory: str, fname: str, headers: list[str]) -> None:
         super().__init__(directory)
-        self.filename = f"{filename}.xlsx"
+        self.filename = f"{fname}.xlsx"
         self._set_up_spreadsheet(headers)
 
-    def _set_up_spreadsheet(self, headers):
+    def _set_up_spreadsheet(self, headers: list[str]):
         """Sets up the output spreadsheet by adding bolded headers to columns.
 
         Args:
-            headers (list): the bolded column headers to be written
+            headers: the bolded column headers to be written
         """
 
         with contextlib.closing(openpyxl.workbook.Workbook()) as wb:
             ws = wb.active
-            ws.append(headers)
-            for cell in ws['1:1']:
+            ws.append(headers) # type: ignore[union-attr]
+            for cell in ws['1:1']: # type: ignore[index]
                 cell.font = openpyxl.styles.Font(bold=True) #make headers bold
             wb.save(str(self))
 
-    def append_to_spreadsheet(self, data):
+    def append_to_spreadsheet(self, data: list[str]):
         """Appends input data to spreadsheet.
 
         Args:
-            data (list): the data to be appended
+            data: the coord and timestamp to be appended
         """
 
-        with contextlib.closing(openpyxl.load_workbook(str(self))) as wb: #open existing workbook
-            wb.active.append(data) #append data to sheet
-            wb.save(str(self)) #save workbook
+        with contextlib.closing(openpyxl.load_workbook(str(self))) as wb:
+            wb.active.append(data) # type: ignore[union-attr]
+            wb.save(str(self))
 
     def delete_last_coordinate(self):
         """Deletes most recent coordinate from Excel sheet."""
@@ -111,11 +115,11 @@ class SpreadSheet(FilePath):
 
 
 class AnnotationManager(FilePath):
-    def __init__(self, directory):
+    def __init__(self, directory: str) -> None:
         super().__init__(directory)
         self.anno_pos = (0, 0)
         self.anno_text = ''
-        self.enter_time = 0
+        self.enter_time = 0.0
         self.filename = ''
         self.frame = None
         self.show_anno = False
@@ -123,10 +127,10 @@ class AnnotationManager(FilePath):
         self.typing = False
         self.write_anno = False
 
-    def start_typing(self, x, y, timestamp_time):
+    def start_typing(self, x: int, y: int, timestamp_time: str) -> None:
         self.anno_pos = (x, y)
         self.anno_text = ''
-        self.enter_time = 0
+        self.enter_time = 0.0
         self.filename = f"{timestamp_time.replace(':', '-')}.jpg"
         self._prevent_filename_overwrite()
         self.show_anno = True
@@ -134,8 +138,8 @@ class AnnotationManager(FilePath):
         self.typing = True
         self.write_anno = False
 
-    def _prevent_filename_overwrite(self):
-        """Gets next available filename (to avoid overwriting image at same timestamp)."""
+    def _prevent_filename_overwrite(self) -> None:
+        """Sets next available filename to avoid overwrite at same timestamp."""
 
         root, ext = os.path.splitext(self.filename) #get name and extension
         num = 0
@@ -145,33 +149,44 @@ class AnnotationManager(FilePath):
 
 
 class CoordinateManager():
-    def __init__(self, three_d=False):
-        self._coord = ()
-        self.start_time = 0
+    def __init__(self, three_d: bool = False) -> None:
+        self._coord = () # type: tuple[int, ...]
+        self.start_time = 0.0
         self._three_d = three_d
 
     @property
-    def coord(self):
+    def coord(self) -> tuple[int, ...]:
         return self._coord
     
     @coord.setter
-    def coord(self, x_and_y):
+    def coord(self, x_and_y: tuple[int, ...]) -> None:
         if self._three_d:
             self._coord = self._get_3d_from_2d(*x_and_y)
         else:
             self._coord = x_and_y
 
     @staticmethod
-    def _get_3d_from_2d(x, y):
+    def _get_3d_from_2d(x, y) -> tuple[int, int]:
         return (x, y)
 
 
-def mouse_input(event, x, y, flags, param):
+def mouse_input(
+    event: int, x: int, y: int, flags: int,
+    param: tuple[CoordinateManager, AnnotationManager, SpreadSheet])-> None:
+    """Mouse input callback function for cv2.
+
+    Args:
+        event: mouse event (left- or right-click, etc.)
+        x: x-coordinate of mouse cursor position
+        y: y-coordinate of mouse cursor position
+        flags: key event pressed with mouse input (shift, alt, etc.)
+        param: parameters passed in to callback function by programmer, not cv2
+    """
+
     del flags # Unused.
+    coord, anno, sheet = param #unpack objects
 
-    coord, anno, sheet = param
-
-    if not anno.typing: #if user *isn't* typing annotation
+    if not anno.typing: #if user isn't typing annotation
         if event == cv2.EVENT_LBUTTONDOWN: #left mouse click
             coord.start_time = time.time()
             coord.coord = (x, y)
@@ -190,23 +205,23 @@ def mouse_input(event, x, y, flags, param):
             anno.start_typing(x, y, timestamp_time)
 
 
-def get_timestamp(frame):
+def get_timestamp(frame) -> tuple[str, str]:
     """Gets burnt-in timestamp via OCR (not video timestamp from OpenCV).
-    
 
     Returns:
-        timestamp_date (str): date from timestamp, DD/MM/YYYY
-        timestamp_time (str): time from timestamp, HH:MM:SS
+        timestamp_date: date from timestamp, DD/MM/YYYY
+        timestamp_time: time from timestamp, HH:MM:SS
     """
 
-    timestamp_area = frame[30:100, 26:634] #bounding box of timestamp in pixels, [y:y+h, x:x+w]
-    timestamp_gray = cv2.cvtColor(timestamp_area, cv2.COLOR_BGR2GRAY) #convert to grayscale
+    ts_area = frame[30:100, 26:634] #bounding box, [y:y+h, x:x+w]
+    ts_gray = cv2.cvtColor(ts_area, cv2.COLOR_BGR2GRAY)
     #binary threshold for better recognition
-    _, timestamp_thresh = cv2.threshold(timestamp_gray, 187, 255, cv2.THRESH_BINARY)
+    _, timestamp_thresh = cv2.threshold(ts_gray, 187, 255, cv2.THRESH_BINARY)
     #cv2.imshow('thresh', timestamp_thresh)
     #convert text in image to string
     timestamp = pytesseract.image_to_string(timestamp_thresh, config='--psm 7')
-    timestamp_date, timestamp_time = timestamp.strip().split(' ') #remove space, split after date
+    #remove space, split after date
+    timestamp_date, timestamp_time = timestamp.strip().split(' ')
 
     # regex in case it messes up. but it seems to be okay without it
     #rePattern = r'(\d{2}/\d{2}/\d{4}) (\d{2}:\d{2}:\d{2})' #regex group pattern
@@ -217,33 +232,15 @@ def get_timestamp(frame):
     return timestamp_date, timestamp_time
 
 
-def get_set_proper_dir(argument):
-    """Makes sure input argument is a directory.
-    
-    Args:
-        argument (str): the input argument directory
+def arg_parsing() -> argparse.Namespace:
+    """Parses input arguments.
 
     Returns:
-        argument (str): the corrected directory
+        parser.parse_args(): object containing command line args
     """
 
-    if not argument.endswith('/') and not argument.endswith('\\'):
-        argument += '/'
-    if not os.path.exists(argument):
-        os.makedirs(argument)
-
-    return argument
-
-
-def arg_parsing():
-    """Parses input arguments; separate from main() because it's long.
-
-    Returns:
-        parser.parse_args() (argparse.Namespace): object containing inputted command line arguments
-    """
-
-    parser = argparse.ArgumentParser(
-        description='A program that displays and saves coordinates for tracking chicken behavior.')
+    parser = argparse.ArgumentParser(description=('A program that displays and '
+        'saves coordinates for tracking chicken behavior.'))
     parser.add_argument('-o', '--options', action='store_true',
         help='Opens the GUI for setting program options.')
     parser.add_argument('--version', action='version',
@@ -275,11 +272,11 @@ def get_args_from_file(filename: str) -> dict[str, Any]:
 
 
 # TODO: get more info?
-def get_system_info():
+def get_system_info() -> str:
     """Gets system info, formatted into lines, for the error log file.
 
     Returns:
-        info (str): multi-line string containing system info
+        info: multi-line string containing system info
     """
 
     uname = platform.uname()
@@ -288,13 +285,12 @@ def get_system_info():
         f"Release: {uname.release}\n"
         f"Version: {uname.version}\n"
         f"Processor: {uname.processor}\n"
-        f"Python: {platform.python_version()}"
-    )
+        f"Python: {platform.python_version()}")
 
     return info
 
 
-def set_up_logger():
+def set_up_logger() -> logging.Logger:
     """Sets up error logger with custom terminator to separate error entries.
 
     Returns:
@@ -305,22 +301,25 @@ def set_up_logger():
     logger.setLevel(logging.DEBUG)
     file_handler = logging.FileHandler('error_log.txt')
     file_handler.terminator = f"\n\n{'=' * 80}\n\n"
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
     return logger
 
 
-def get_window_and_video_dims(cap):
+def get_window_and_video_dims(cap: TVideoCapture) -> tuple[int, int, int, int]:
     """Gets screen resolution and returns suitable window dimensions.
 
     Args:
         cap (cv2.VideoCapture obj): video captured by OpenCV
 
     Returns:
-        window_width (int): suitable window width, in pixels
-        window_height (int): suitable window height, in pixels
+        window_width: suitable window width, in pixels
+        window_height: suitable window height, in pixels
+        video_width: video resolution width, in pixels
+        video_height: video resolution height, in pixels
     """
 
     # Get screen resolution
@@ -332,7 +331,7 @@ def get_window_and_video_dims(cap):
     video_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     video_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     aspect_ratio = video_width / video_height
-    window_width = int(min(screen_width - 150, video_width)) #account for taskbar, etc.
+    window_width = int(min(screen_width - 150, video_width)) #taskbar, etc.
     window_height = int(window_width / aspect_ratio)
 
     return window_width, window_height, video_width, video_height
@@ -346,27 +345,30 @@ def main():
 
     logger = set_up_logger() #set up bad error logger
 
-    system_date_time = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) #ISO 8601
     ascii_allowlist = string.printable[:-5] #OpenCV can only print up to <space>
+    #ISO 8601
+    system_date_time = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime())
 
     #point pytesseract to tesseract executable
     if platform.system() == 'Windows':
-        pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+        pytesseract.pytesseract.tesseract_cmd = R'C:\Program Files\Tesseract-OCR\tesseract.exe'
     
     options_file = 'options.json'
     prog_options = types.SimpleNamespace(**get_args_from_file(options_file))
 
     # Set up arguments for program use
-    infile_path = prog_options.video_path.strip() #strip trailing space for MacOS
+    infile_path = prog_options.video_path.strip() #strip whitespace for MacOS
     if prog_options.exit_key.lower() == 'esc':
         exit_key = 27
     else:
         exit_key = ord(prog_options.exit_key)
     clear_key = ord(prog_options.clear_key)
     pause_key = ord(prog_options.pause_key)
-    duration = prog_options.duration #duration of coords and annos on screen, in seconds
-    font = types.SimpleNamespace(font=prog_options.font, scale=prog_options.font_scale,
-        color=tuple(prog_options.font_color), thickness=prog_options.font_thickness)
+    duration = prog_options.duration #duration on screen, in seconds
+    font = types.SimpleNamespace(font=prog_options.font,
+                                 scale=prog_options.font_scale,
+                                 color=tuple(prog_options.font_color),
+                                 thickness=prog_options.font_thickness)
 
     # Instantiate classes
     #coord = types.SimpleNamespace(xy=(), start_time=0)
@@ -385,11 +387,11 @@ def main():
     # Set up video window
     w_width, w_height, v_width, v_height = get_window_and_video_dims(cap)
     window_name = 'Video'
-    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL) #create named window to display cap
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL) #named window to display cap
     cv2.resizeWindow(window_name, width=w_width, height=w_height)
 
     paused = False
-    callback_params = (coord, anno, sheet)
+    callback_params = coord, anno, sheet
     cv2.setMouseCallback(window_name, mouse_input, param=callback_params)
 
 
@@ -421,22 +423,24 @@ def main():
                 if key_press == clear_key:
                     coord.coord = ()
                     sheet.delete_last_coordinate()
-                elif (time.time() - coord.start_time < duration): #on-screen coordinate timeout
+                elif (time.time() - coord.start_time < duration): #coord timeout
                     if paused:
-                        cv2.putText(frame_copy, str(coord.coord), coord.coord[:2],
-                            font.font, font.scale, font.color, font.thickness)
+                        cv2.putText(frame_copy, str(coord.coord),
+                                    coord.coord[:2], font.font, font.scale,
+                                    font.color, font.thickness)
                     else:
-                        cv2.putText(anno.frame, str(coord.coord), coord.coord[:2],
-                            font.font, font.scale, font.color, font.thickness)
+                        cv2.putText(anno.frame, str(coord.coord),
+                                    coord.coord[:2], font.font, font.scale,
+                                    font.color, font.thickness)
 
             # This while loop ensures that the video is paused while annotating
             while anno.typing:
-                frame_copy = anno.frame.copy() #get copy of frame so backspace works
+                frame_copy = anno.frame.copy() #makes backspace work when typing
 
                 if anno.show_anno:
-                    cv2.putText(frame_copy, anno.anno_text,
-                        anno.anno_pos, font.font, font.scale,
-                        font.color, font.thickness)
+                    cv2.putText(frame_copy, anno.anno_text, anno.anno_pos,
+                                font.font, font.scale, font.color,
+                                font.thickness)
                     cv2.imshow(window_name, frame_copy)
 
                 key_press = cv2.waitKey(0) & 0xFF #LSByte for cross-plat compat
@@ -458,23 +462,25 @@ def main():
 
             if anno.show_anno:
                 if paused:
-                    cv2.putText(frame_copy, anno.anno_text,
-                        anno.anno_pos, font.font,
-                        font.scale, font.color, font.thickness)
+                    cv2.putText(frame_copy, anno.anno_text, anno.anno_pos,
+                                font.font,font.scale, font.color,
+                                font.thickness)
                 else:
-                    cv2.putText(anno.frame, anno.anno_text,
-                        anno.anno_pos, font.font,
-                        font.scale, font.color, font.thickness)
+                    cv2.putText(anno.frame, anno.anno_text, anno.anno_pos,
+                                font.font, font.scale, font.color,
+                                font.thickness)
 
             if not(paused and (coord.coord or anno.show_anno)):
                 cv2.imshow(window_name, anno.frame) #show video frame
 
     except Exception as e:
         logger.error('\nError: %s\n', e, exc_info=True)
-        print(f'\n***AN ERROR OCCURRED! PLEASE FOLLOW THE SUPPORT INSTRUCTIONS IN THE README.***')
+        print(('\n***AN ERROR OCCURRED! '
+               'PLEASE FOLLOW THE SUPPORT INSTRUCTIONS IN THE README.***'))
 
     finally:
-        if 'cap' in locals() or 'cap' in globals(): #if program initialized cap before error
+        # destroy cv2 windows if initialized
+        if 'cap' in locals() or 'cap' in globals():
             cap.release() #release video capture object
             cv2.destroyAllWindows() #close all OpenCV windows
 
