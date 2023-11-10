@@ -1,5 +1,6 @@
 {
     "video_path": "test.mp4",
+    "three_d": false,
     "out_dir": "sheets/",
     "anno_dir": "annotated_images/",
     "exit_key": "q",
