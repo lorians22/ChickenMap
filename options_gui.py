@@ -49,7 +49,9 @@ from PIL import ImageTk
 TRoot = TypeVar('TRoot', bound=tk.Tk)
 TCanvas = TypeVar('TCanvas', bound=tk.Canvas)
 TLabel = TypeVar('TLabel', bound=ttk.Label)
+TOptionmenu = TypeVar('TOptionmenu', bound=ttk.OptionMenu)
 TStringVar = TypeVar('TStringVar', bound=tk.StringVar)
+TBooleanVar = TypeVar('TBooleanVar', bound=tk.BooleanVar)
 
 
 def get_args_from_file(filename: str) -> dict[str, Any]:
@@ -100,6 +102,32 @@ def clear_error(name: str, err_msgs: dict[str, str], label_err: TLabel) -> None:
 
     if name in err_msgs: del err_msgs[name]
     update_error_label(err_msgs, label_err)
+
+
+def clear_label(label: TLabel) -> None:
+    """Clears passed-in label. Callback function for root.after().
+
+    Args:
+        label: label to be cleared
+    """
+
+    label.config(text='')
+
+
+def toggle_menu_state(check_var: TBooleanVar, menu: TOptionmenu,
+                      menu_var: TStringVar) -> None:
+    """Enables or resets menu based on checkbox.
+
+    Args:
+        check_var: checkbox variable
+        menu: drop-down menu widget
+        menu_var: variable holding current menu option
+    """
+
+    if check_var.get(): menu.config(state='normal')
+    else:
+        menu.config(state='disabled')
+        menu_var.set('Select Chicken Location')
 
 
 def add_error(name: str, message: str, err_msgs: dict[str, str],
@@ -181,7 +209,7 @@ def pick_color(font_vars: list[TStringVar], canvas: TCanvas,
         update_font_preview(font_vars, canvas, sys_theme)
 
 
-def set_defaults(default_vars: list[TStringVar], canvas: TCanvas,
+def set_defaults(default_vars: list[Any], canvas: TCanvas,
                  sys_theme: str) -> None:
     """Callback function to populate input fields with default values.
 
@@ -191,22 +219,24 @@ def set_defaults(default_vars: list[TStringVar], canvas: TCanvas,
     """
 
     default_vars[0].set('test.mp4') #input video file
-    default_vars[1].set('sheets/') #spreadsheets directory
-    default_vars[2].set('annotated_images/') #annotations directory
-    default_vars[3].set('q') #exit key
-    default_vars[4].set('c') #clear key
-    default_vars[5].set('p') #pause key
-    default_vars[6].set('5.0') #duration
-    default_vars[7].set('FONT_HERSHEY_SIMPLEX') #font
-    default_vars[8].set('(0, 255, 0)') #font color tuple, green
-    default_vars[9].set('1.0') #font scale
-    default_vars[10].set('2') #font thickness
+    default_vars[1].set(False)
+    default_vars[2].set('Select Chicken Location')
+    default_vars[3].set('sheets/') #spreadsheets directory
+    default_vars[4].set('annotated_images/') #annotations directory
+    default_vars[5].set('q') #exit key
+    default_vars[6].set('c') #clear key
+    default_vars[7].set('p') #pause key
+    default_vars[8].set('5.0') #duration
+    default_vars[9].set('FONT_HERSHEY_SIMPLEX') #font
+    default_vars[10].set('(0, 255, 0)') #font color tuple, green
+    default_vars[11].set('1.0') #font scale
+    default_vars[12].set('2') #font thickness
     
-    update_font_preview(default_vars[7:], canvas, sys_theme)
+    update_font_preview(default_vars[9:], canvas, sys_theme)
 
 
-def save_options(root: TRoot, option_vars: list[TStringVar], label_ack: TLabel,
-                 err_msgs: dict[str, str]) -> None:
+def save_options(root: TRoot, option_vars: list[Any],
+                 label_ack: TLabel, err_msgs: dict[str, str]) -> None:
     """Formats user entries for writing to file.
 
     Args:
@@ -219,18 +249,21 @@ def save_options(root: TRoot, option_vars: list[TStringVar], label_ack: TLabel,
     if err_msgs: return #if invalid input, don't submit
 
     # Rename options for output
-    args = {} # type: dict[str, Any]
+    args = {} # type: dict[str, str | float | int | bool | tuple[int, int, int]]
     args['video_path'] = option_vars[0].get()
-    args['out_dir'] = option_vars[1].get()
-    args['anno_dir'] = option_vars[2].get()
-    args['exit_key'] = option_vars[3].get()
-    args['clear_key'] = option_vars[4].get()
-    args['pause_key'] = option_vars[5].get()
-    args['duration'] = float(option_vars[6].get())
-    args['font'] = convert_font_name_to_int(option_vars[7].get())
-    args['font_color'] = ast.literal_eval(option_vars[8].get())
-    args['font_scale'] = float(option_vars[9].get())
-    args['font_thickness'] = int(option_vars[10].get())
+    if option_vars[1].get():
+        args['three_d'] = option_vars[2].get()
+    else: args['three_d'] = False
+    args['out_dir'] = option_vars[3].get()
+    args['anno_dir'] = option_vars[4].get()
+    args['exit_key'] = option_vars[5].get()
+    args['clear_key'] = option_vars[6].get()
+    args['pause_key'] = option_vars[7].get()
+    args['duration'] = float(option_vars[8].get())
+    args['font'] = convert_font_name_to_int(option_vars[9].get())
+    args['font_color'] = ast.literal_eval(option_vars[10].get())
+    args['font_scale'] = float(option_vars[11].get())
+    args['font_thickness'] = int(option_vars[12].get())
     
     write_args_to_file(args, 'options.json')
     label_ack.config(text='Saved!')
@@ -411,16 +444,6 @@ def validate_dir(var: TStringVar, name: str, err_msgs: dict[str, str],
                   label_err)
 
 
-def clear_label(label: TLabel) -> None:
-    """Clears passed-in label. Callback function for root.after().
-
-    Args:
-        label: label to be cleared
-    """
-
-    label.config(text='')
-
-
 def close_window(root: TRoot) -> None:
     """Closes GUI and exits program.
 
@@ -516,7 +539,7 @@ def main():
     saved_args = get_args_from_file('options.json')
 
     label_video = ttk.Label(frame, text='Input video file:')
-    label_video.grid(row=0, column=0, sticky='W', pady=2)
+    label_video.grid(row=0, column=0, sticky='w', pady=2)
     video_var = tk.StringVar(value=saved_args['video_path'])
     option_vars.append(video_var)
     video_entry = ttk.Entry(frame, textvariable=video_var, state='readonly',
@@ -526,13 +549,27 @@ def main():
                               command=lambda: pick_file(video_var))
     video_button.grid(row=video_entry.grid_info()['row']+1, column=1, pady=3)
 
+    var_3d = tk.BooleanVar()
+    option_vars.append(var_3d)
+    checkbox_3d = ttk.Checkbutton(frame, text='3D?', variable=var_3d,
+                                  command=lambda *args: toggle_menu_state(
+                                      var_3d, menu_3d, var_location_3d))
+    checkbox_3d.grid(row=video_button.grid_info()['row']+1, column=0,
+                     padx=(200,0), pady=2)
+    var_location_3d = tk.StringVar()
+    option_vars.append(var_location_3d)
+    options_3d = ['Select Chicken Location', 'Floor', 'Aviary']
+    menu_3d = ttk.OptionMenu(frame, var_location_3d, options_3d[0], *options_3d)
+    menu_3d.config(width=29, state='disabled')
+    menu_3d.grid(row=checkbox_3d.grid_info()['row'], column=1, pady=3)
+
     label_out_folders = ttk.Label(frame, text='Output Folders', font=bold_font)
-    label_out_folders.grid(row=video_button.grid_info()['row']+1, column=0,
-                           sticky='W')
+    label_out_folders.grid(row=checkbox_3d.grid_info()['row']+1, column=0,
+                           sticky='w')
 
     label_sheet = ttk.Label(frame, text='Spreadsheet folder:')
     label_sheet.grid(row=label_out_folders.grid_info()['row']+1, column=0,
-                     sticky='W', padx=(20, 0), pady=2)
+                     sticky='w', padx=(20, 0), pady=2)
     sheet_var = tk.StringVar(value=saved_args['out_dir'])
     entry_sheet = ttk.Entry(frame, textvariable=sheet_var, width=width)
     entry_sheet.grid(row=label_sheet.grid_info()['row'], column=1, pady=3)
@@ -544,7 +581,7 @@ def main():
 
     label_anno = ttk.Label(frame, text='Annotated images folder:')
     label_anno.grid(row=label_sheet.grid_info()['row']+1, column=0,
-                    sticky='W', padx=(20, 0), pady=2)
+                    sticky='w', padx=(20, 0), pady=2)
     anno_var = tk.StringVar(value=saved_args['anno_dir'])
     entry_anno = ttk.Entry(frame, textvariable=anno_var, width=width)
     entry_anno.grid(row=label_anno.grid_info()['row'], column=1, pady=3)
@@ -556,11 +593,11 @@ def main():
 
     label_keys = ttk.Label(frame, text='Program Keys & Options', font=bold_font)
     label_keys.grid(row=label_anno.grid_info()['row']+1, column=0,
-                    sticky='W')
+                    sticky='w')
 
     label_exit_key = ttk.Label(frame, text='Exit key:')
     label_exit_key.grid(row=label_keys.grid_info()['row']+1, column=0,
-                        sticky='W', padx=(20, 0), pady=2)
+                        sticky='w', padx=(20, 0), pady=2)
     exit_key_var = tk.StringVar(value=saved_args['exit_key'])
     entry_exit_key = ttk.Entry(frame, textvariable=exit_key_var, width=width)
     entry_exit_key.grid(row=label_exit_key.grid_info()['row'],
@@ -572,7 +609,7 @@ def main():
 
     label_clear_key = ttk.Label(frame, text='Clear key:')
     label_clear_key.grid(row=label_exit_key.grid_info()['row']+1, column=0,
-                         sticky='W', padx=(20, 0), pady=2)
+                         sticky='w', padx=(20, 0), pady=2)
     clear_key_var = tk.StringVar(value=saved_args['clear_key'])
     entry_clear_key = ttk.Entry(frame, textvariable=clear_key_var, width=width)
     entry_clear_key.grid(row=label_clear_key.grid_info()['row'],
@@ -584,7 +621,7 @@ def main():
 
     label_pause_key = ttk.Label(frame, text='Pause key:')
     label_pause_key.grid(row=label_clear_key.grid_info()['row']+1, column=0,
-                         sticky='W', padx=(20, 0), pady=2)
+                         sticky='w', padx=(20, 0), pady=2)
     pause_key_var = tk.StringVar(value=saved_args['pause_key'])
     entry_pause_key = ttk.Entry(frame, textvariable=pause_key_var, width=width)
     entry_pause_key.grid(row=label_pause_key.grid_info()['row'],
@@ -596,7 +633,7 @@ def main():
 
     label_duration = ttk.Label(frame, text='Coordinate duration:')
     label_duration.grid(row=label_pause_key.grid_info()['row']+1, column=0,
-                        sticky='W', padx=(20, 0), pady=2)
+                        sticky='w', padx=(20, 0), pady=2)
     duration_var = tk.StringVar(value=saved_args['duration'])
     spinbox_duration = ttk.Spinbox(frame, from_=1, to=60, increment=1,
                                    textvariable=duration_var, width=width)
@@ -609,12 +646,12 @@ def main():
 
     label_keys = ttk.Label(frame, text='Font Options', font=bold_font)
     label_keys.grid(row=label_duration.grid_info()['row']+1, column=0,
-                    sticky='W')
+                    sticky='w')
 
     # Drop-down menu
     label_font = ttk.Label(frame, text='Font:')
     label_font.grid(row=label_keys.grid_info()['row']+1, column=0,
-                    sticky='W', padx=(20, 0))
+                    sticky='w', padx=(20, 0))
     font_options = (
         'FONT_HERSHEY_SIMPLEX',
         'FONT_HERSHEY_PLAIN',
@@ -636,7 +673,7 @@ def main():
     # Color picker
     label_font_color = ttk.Label(frame, text='Font Color:')
     label_font_color.grid(row=label_font.grid_info()['row']+1, column=0,
-                          sticky='W', padx=(20, 0))
+                          sticky='w', padx=(20, 0))
     color_var = tk.StringVar(value=saved_args['font_color'])
     option_vars.append(color_var)
     color_button = ttk.Button(frame, text='Pick Font Color', width=14,
@@ -647,7 +684,7 @@ def main():
 
     label_font_scale = ttk.Label(frame, text='Font Scale:')
     label_font_scale.grid(row=label_font_color.grid_info()['row']+1, column=0,
-                          sticky='W', padx=(20, 0))
+                          sticky='w', padx=(20, 0))
     font_scale_var = tk.StringVar(value=saved_args['font_scale'])
     spinbox_font_scale = ttk.Spinbox(frame, from_=0.1, to=2.5, increment=0.1,
                                      textvariable=font_scale_var, width=width)
@@ -661,7 +698,7 @@ def main():
 
     label_font_thickness = ttk.Label(frame, text='Font Thickness:')
     label_font_thickness.grid(row=label_font_scale.grid_info()['row']+1,
-                              column=0, sticky='W', padx=(20, 0))
+                              column=0, sticky='w', padx=(20, 0))
     font_thickness_var = tk.StringVar(value=saved_args['font_thickness'])
     spinbox_font_thickness = ttk.Spinbox(frame, from_=1, to=5, increment=1,
                                          textvariable=font_thickness_var,
@@ -682,8 +719,8 @@ def main():
 
 
     # Create sliced option_vars lists (avoids find+replace shenanigans)
-    font_vars = option_vars[7:]
-    key_vars = option_vars[3:6]
+    font_vars = option_vars[9:]
+    key_vars = option_vars[5:8]
 
 
     # Initialize font preview
@@ -695,14 +732,14 @@ def main():
     # BUTTONS
     # New frames setup
     default_frame = ttk.Frame(root)
-    default_frame.grid(row=label_err.grid_info()['row']+1, sticky='W')
+    default_frame.grid(row=label_err.grid_info()['row']+1, sticky='w')
     save_close_frame = ttk.Frame(root)
     save_close_frame.grid(row=label_err.grid_info()['row']+1, sticky='E')
 
     # Reset to defaults button
     default_button = ttk.Button(default_frame, text='Defaults',
                                 command=lambda: set_defaults(
-                                    option_vars, canvas))
+                                    option_vars, canvas, sys_theme))
     default_button.grid(row=0, column=0, padx=6, pady=(0, 6))
 
     # Save options button

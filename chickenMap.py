@@ -20,12 +20,11 @@ No implied support or warranty.
 # MacOS:        python3 chickenMap.py
 
 # TODO:
-# 0) --3d input arg + GUI; aviary/floor
-# 1) .bat/sh files for click running
+# 1) .bat/.sh/.command files for double-click running (no cmd/terminal)
 # 2) shift-left click to add a note to the spreadsheet - use flags in mouse_cb
 # 3) add more error loggers
 # 4) location-aware text drawing; how right-click menu flows up/down from cursor
-# 6) remove parentheses where unncessary
+# 5) remove parentheses where unncessary
 
 
 __version__ = '2023.10.4'
@@ -149,7 +148,7 @@ class AnnotationManager(FilePath):
 
 
 class CoordinateManager():
-    def __init__(self, three_d: bool = False) -> None:
+    def __init__(self, three_d: bool | str) -> None:
         self._coord = () # type: tuple[int, ...]
         self.start_time = 0.0
         self._three_d = three_d
@@ -346,7 +345,6 @@ def main():
     logger = set_up_logger() #set up bad error logger
 
     ascii_allowlist = string.printable[:-5] #OpenCV can only print up to <space>
-    #ISO 8601
     system_date_time = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime())
 
     #point pytesseract to tesseract executable
@@ -372,7 +370,7 @@ def main():
 
     # Instantiate classes
     #coord = types.SimpleNamespace(xy=(), start_time=0)
-    coord = CoordinateManager()
+    coord = CoordinateManager(prog_options.three_d)
     anno = AnnotationManager(f"{prog_options.anno_dir}/{system_date_time}")
     headers = ['Date', 'Time', 'Coordinates']
     sheet = SpreadSheet(prog_options.out_dir, system_date_time, headers)
