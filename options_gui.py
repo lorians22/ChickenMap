@@ -329,7 +329,7 @@ def validate_duration(var: TStringVar, err_msgs: dict[str, str],
         clear_error('Duration', err_msgs, label_err)
     except ValueError:
         add_error('Duration',
-                  'Please enter a value between 1 and 60 for Duration.',
+                  'Enter a value between 1 and 60 for Duration.',
                   err_msgs, label_err)
 
 
@@ -355,7 +355,7 @@ def validate_scale(var: TStringVar, font_vars: list[TStringVar],
             update_font_preview(font_vars, canvas, sys_theme) #update preview
     except ValueError:
         add_error('Font Scale',
-                  'Please enter a value between 0 and 2.5 for Scale.',
+                  'Enter a value between 0 and 2.5 for Scale.',
                   err_msgs, label_err)
 
 
@@ -380,7 +380,7 @@ def validate_thickness(var: TStringVar, font_vars: list[TStringVar],
             update_font_preview(font_vars, canvas, sys_theme)
     except ValueError:
         add_error('Font Thickness',
-                  'Please enter a positive integer for Font Thickness.',
+                  'Enter a positive integer for Font Thickness.',
                   err_msgs, label_err)
 
 
@@ -422,9 +422,9 @@ def validate_key(val: str, name: str, err_msgs: dict[str, str],
 
     try:
         if val in other_key_vals:
-            raise ValueError('Please do not reuse the same key.')
+            raise ValueError('Do not reuse the same key.')
         if not(len(val) == 1 and val in approved_keys) and val.lower() != 'esc':
-            raise ValueError(f'For {name}, enter one key a-z/0-9, or type Esc.')
+            raise ValueError(f'{name}: enter a key a-z/0-9 or type Esc.')
         clear_error(name, err_msgs, label_err)
     except ValueError as e:
         add_error(name, str(e), err_msgs, label_err)
@@ -449,7 +449,7 @@ def validate_dir(var: TStringVar, name: str, err_msgs: dict[str, str],
             raise ValueError
         clear_error(name, err_msgs, label_err)
     except ValueError:
-        add_error(name, f'{name} cannot contain < > : " | ? *', err_msgs,
+        add_error(name, f'{name} can\'t contain < > : " | ? *', err_msgs,
                   label_err)
 
 
@@ -521,14 +521,18 @@ def main():
     root.title('ChickenMap Options')
 
     # Set up GUI theme
-    root.tk.call('source', '.tcl_theme/azure.tcl')
     if platform.system() == 'Windows':
         sys_theme = get_windows_theme()
     elif platform.system() == 'Darwin':
         sys_theme = get_macos_theme()
     else:
         sys_theme = 'light'
-    root.tk.call('set_theme', sys_theme)
+    try:
+        import sv_ttk
+        sv_ttk.set_theme(sys_theme)
+    except ModuleNotFoundError:
+        print('Please install sv-ttk')
+
 
     frame = ttk.Frame(root)
     frame.grid(row=0, column=0, padx=6, pady=6)
@@ -584,7 +588,7 @@ def main():
     entry_sheet.grid(row=label_sheet.grid_info()['row'], column=1, pady=3)
     sheet_var.trace_add('write',
                         lambda *args: validate_dir(
-                            sheet_var, 'Spreadsheet Directory', err_msgs,
+                            sheet_var, 'Spreadsheet folder', err_msgs,
                             label_err))
     option_vars.append(sheet_var)
 
@@ -596,7 +600,7 @@ def main():
     entry_anno.grid(row=label_anno.grid_info()['row'], column=1, pady=3)
     anno_var.trace_add('write',
                        lambda *args: validate_dir(
-                           anno_var, 'Annotation Directory', err_msgs,
+                           anno_var, 'Annotation folder', err_msgs,
                            label_err))
     option_vars.append(anno_var)
 
