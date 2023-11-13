@@ -68,7 +68,10 @@ def get_args_from_file(filename: str) -> dict[str, Any]:
         with open(filename, 'r') as f:
             args = json.load(f)
         return args
-    except OSError as e:
+    except FileNotFoundError as e:
+        print(f'File not found. Is {filename} visible in the folder?: {e}')
+        raise
+    except (PermissionError, OSError) as e:
         print(f'Error accessing file; please contact author: {e}')
         raise
     except json.JSONDecodeError as e:
@@ -85,9 +88,15 @@ def write_args_to_file(args: dict[str, Any], filename: str) -> None:
     """
 
     try:
-        with open(filename, 'w') as f:
+        with open(filename, 'r+') as f:
+            f.seek(0) #because r+
+            f.truncate() #because r+
             json.dump(args, f, indent=4)
-    except OSError: #file permissions, etc.
+    except FileNotFoundError as e:
+        print(f'File not found. Is {filename} visible in the folder?: {e}')
+        raise
+    except (PermissionError, OSError) as e:
+        print(f'Error accessing file; please contact author: {e}')
         raise
 
 
@@ -265,7 +274,7 @@ def save_options(root: TRoot, option_vars: list[Any],
     args['font_scale'] = float(option_vars[11].get())
     args['font_thickness'] = int(option_vars[12].get())
     
-    write_args_to_file(args, 'options.json')
+    write_args_to_file(args, '.options.json')
     label_ack.config(text='Saved!')
     root.after(2500, lambda: clear_label(label_ack)) #clear after 2.5 seconds
 
@@ -512,7 +521,7 @@ def main():
     root.title('ChickenMap Options')
 
     # Set up GUI theme
-    root.tk.call('source', 'tcl_theme/azure.tcl')
+    root.tk.call('source', '.tcl_theme/azure.tcl')
     if platform.system() == 'Windows':
         sys_theme = get_windows_theme()
     elif platform.system() == 'Darwin':
@@ -536,7 +545,7 @@ def main():
     option_vars = [] #entry field vars list
     err_msgs = {} #dict for keeping track of on-GUI error messages
 
-    saved_args = get_args_from_file('options.json')
+    saved_args = get_args_from_file('.options.json')
 
     label_video = ttk.Label(frame, text='Input video file:')
     label_video.grid(row=0, column=0, sticky='w', pady=2)

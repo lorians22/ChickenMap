@@ -351,7 +351,7 @@ def main():
     if platform.system() == 'Windows':
         pytesseract.pytesseract.tesseract_cmd = R'C:\Program Files\Tesseract-OCR\tesseract.exe'
     
-    options_file = 'options.json'
+    options_file = '.options.json'
     prog_options = types.SimpleNamespace(**get_args_from_file(options_file))
 
     # Set up arguments for program use
@@ -365,7 +365,7 @@ def main():
     duration = prog_options.duration #duration on screen, in seconds
     font = types.SimpleNamespace(font=prog_options.font,
                                  scale=prog_options.font_scale,
-                                 color=tuple(prog_options.font_color),
+                                 color=tuple(reversed(prog_options.font_color)),
                                  thickness=prog_options.font_thickness)
 
     # Instantiate classes
