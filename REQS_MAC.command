@@ -1,4 +1,3 @@
 #!/bin/bash
-@echo off
-pip3 install -r .requirements.txt
-echo: && echo: && echo: && echo INSTALLATION COMPLETE. YOU MAY NOW CLOSE THIS WINDOW
+
+pip3 install -r "$(dirname "$0")/.requirements.txt" && echo -e "\n\n\nINSTALLATION COMPLETE. YOU MAY NOW CLOSE THIS WINDOW"
