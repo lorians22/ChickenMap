@@ -17,7 +17,7 @@ No implied support or warranty.
 # MacOS: python3 options_gui.py
 
 
-__version__ = '2023.10.3'
+__version__ = '2023.11.1'
 __author__ = 'Logan Orians'
 
 

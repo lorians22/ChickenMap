@@ -2,7 +2,7 @@
 
 A 2D coordinate mapping program for monitoring the location of chickens.
 
-Version 2023.10.2
+Version 2023.11.1
 
 ## Table of Contents
 
@@ -33,8 +33,6 @@ Version 2023.10.2
   - [Windows](#windows-3)
   
   - [MacOS](#macos-3)
-  
-  - [Examples](#examples)
 
 - [Compatibility](#compatibility)
 
@@ -42,9 +40,11 @@ Version 2023.10.2
 
 - [Development](#development)
   
-  - [Style and Formatting](#style-and-formatting)
+  - [Third-Party Resources](#third-party-resources)
   
   - [Tools Used](#tools-used)
+  
+  - [Style and Formatting](#style-and-formatting)
   
   - [Decisions](#decisions-nerd-questions)
 
@@ -110,11 +110,9 @@ Version 2023.10.2
 
 - Tesseract 5.x. (tested with 5.3.1). Download the latest [here for Windows](https://digi.bib.uni-mannheim.de/tesseract/tesseract-ocr-w64-setup-5.3.1.20230401.exe) and install.
 
-- Python 3.7+ (tested with 3.8, 3.11, 3.12). Download the latest for your system [here](https://www.python.org/downloads/) and install. If you have Python installed already and want to see if your currently installed version is sufficient (i.e., >=3.7), type `py --version` in a command prompt. 
+- Python 3.7+ (tested with 3.8, 3.11, 3.12). Download the latest for your system [here](https://www.python.org/downloads/) and install. If you have Python installed already and want to see if your currently installed version is sufficient (i.e., >=3.7), type `py --version` in a command prompt.
   
   - On Windows, when installing, make sure to check the *Add python.exe to PATH* box, then click *Install Now*. At the end, you'll have the option to *Disable path length limit*. While not necessary for this program, it's a good idea to click that option.
-    
-    ![Add python.exe to PATH](./pythonPath.png)
   
   - After installation, if another command prompt window pops up and the characters to the left are `>>>`, close out of that command prompt. Then, verify that Python3 and pip3 are installed in a normal command prompt, which starts with `C:\`. If both respond with a version number, you're good to go:
     
@@ -162,7 +160,9 @@ Version 2023.10.2
 
 - Pillow
 
-These libraries can be installed automatically by opening a command prompt/Terminal, navigating to the folder, and using `pip3` to read the requirements file:
+- sv-ttk
+
+These can be installed by double-clicking the `REQS_WIN.cmd` file on Windows or `REQS_MAC.command` on MacOS. MacOS users will likely be prompted with a security pop-up due to the system [Gatekeeper](https://support.apple.com/en-us/HT202491#openanyway). Bypass this by  navigating to [Privacy and Security in System Preferences](x-apple.systempreferences:com.apple.preference.security?Privacy), and clicking Open Anyway next to *REQS_MAC.command* in the Security pane.
 
 ### Windows
 
@@ -180,17 +180,17 @@ These libraries can be installed automatically by opening a command prompt/Termi
 
 ## How To Use
 
-Overly-detailed command line usage can be found under [Usage](#usage). They might confuse you in their current state, so feel free to ignore. To test things out, if you don't already have a command prompt/Terminal open and navigated to the ChickenMap folder, do so:
+Command line usage can be found under [Usage](#usage). To test things out, if you don't already have a command prompt/Terminal open and navigated to the ChickenMap folder, do so:
 
     Windows: `cd %USERPROFILE%\Downloads\ChickenMap-main\ChickenMap-main`
 
-    MacOS:     `cd ~/Downloads/ChickenMap-main`
+    MacOS: `cd ~/Downloads/ChickenMap-main`
 
-Then, run the program with the provided test video:
+Then, run the program with the test video:
 
-    Windows: `py chickenMap.py test.mp4`
+    Windows: `py chickenMap.py`
 
-    MacOS:     `python3 chickenMap.py test.mp4`
+    MacOS: `python3 chickenMap.py`
 
 ### Instructions
 
@@ -222,30 +222,17 @@ Then, run the program with the provided test video:
 
 ## Usage
 
-See [Examples](#examples) for platform-specific instructions (what you should actually type into the command line). `VIDEO_PATH` is a required argument; arguments encapsulated by brackets are optional.
-
 ```bash
-python3 chickenMap.py VIDEO_PATH [out_dir] [anno_dir] [exit_key] \
-    [clear_key] [duration]
+chickenMap.py [-h] [-o]
 ```
 
-You can view command-line options by typing:
+You can set program options with a GUI with:
 
 ```bash
-python3 chickenMap.py -h
+chickenMap.py -o
 ```
 
-| Short Argument | Long Argument | Description                                                    | Default           |
-| -------------- | ------------- | -------------------------------------------------------------- | ----------------- |
-| -od            | --out_dir     | Name of output folder for Excel files                          | sheets/           |
-| -ad            | --anno_dir    | Name of output folder for annotated images                     | annotated_images/ |
-| -e             | --exit_key    | Key to quit program (a-z, 0-9)                                 | q                 |
-| -c             | --clear_key   | Key to remove coordinate from screen and Excel file (a-z, 0-9) | c                 |
-| -d             | --duration    | Duration of coordinates on screen, in seconds                  | 5                 |
-
-Full options are available in the `options.txt` file. You can open this file with Notepad (Windows), TextEdit (MacOS), or your favorite text editor, if you have one. Make sure to save the file after you change options. Any option not entered at the command line will default to the one stored in this file. Here, you can also edit font, font color, font scale, and font thickness. See the comments in the file for limitations.
-
-You can change all the settings you want in `options.txt` and just type `py chickenMap.py VIDEO_PATH` into the command line, and the program will use the settings you entered into `options.txt`. Options entered at command line are saved to `options.txt` so you don't have to retype them each time.
+Please do not edit the `options.json` file.
 
 ### Windows
 
@@ -253,10 +240,8 @@ In a new command prompt:
 
 ```bash
 cd %USERPROFILE%\Downloads\ChickenMap-main\ChickenMap-main
-python3 chickenMap.py test.mp4
+py chickenMap.py
 ```
-
-Replace `test.mp4` with the filename of the video you want to play. You can drag a video file from File Explorer into the command prompt window and press enter to run the program; this makes it easy if your video is stored on an external hard drive. Just make sure to add a space after `py chickenMap.py` before dragging a video file into the window.
 
 ### MacOS
 
@@ -264,23 +249,7 @@ In a new Terminal:
 
 ```bash
 cd ~/Downloads/ChickenMap-main
-python3 chickenMap.py VIDEO_PATH
-```
-
-`VIDEO_PATH` should not be typed out; it should be the filename of the video you want to play. You can drag a video file from Finder into the Terminal window and press enter to run the program; this makes it easy if your video is stored on an external hard drive. Just make sure to add a space after `python3 chickenMap.py` before dragging a video file into the window.
-
-### Examples
-
-Basic, uses the options in `options.txt`:
-
-```bash
-python3 chickenMap.py test.mp4
-```
-
-Set the exit key to `Esc` and the duration of on-screen coordinates and annotations to 2 seconds, with the other options being filled in from `options.txt`:
-
-```bash
-python3 chickenMap.py test.mp4 -e Esc -d 2
+python3 chickenMap.py
 ```
 
 ## Compatibility
@@ -327,15 +296,29 @@ This program does not store or transmit any user data to an external source and 
 
 ## Development
 
-### Style and Formatting
+### Third-Party Resources
 
-This code attempts to follow [PEP 484](https://peps.python.org/pep-0484/) for type hints and [PEP 8](https://peps.python.org/pep-0008/) and the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html) for style and formatting, with programmer's freedom on any conflicting elements. Line width is set to 100 characters (not 80) because it's 2023 and we have high-resolution and ultrawide monitors.
+- [NumPy](https://pypi.org/project/numpy/)
+
+- [OpenCV-Python](https://pypi.org/project/opencv-python/)
+
+- [openpyxl](https://pypi.org/project/openpyxl/)
+
+- [Python-tesseract](https://pypi.org/project/pytesseract/)
+
+- [Pillow](https://pypi.org/project/Pillow/)
+
+- [Azure theme by rdbende](https://github.com/rdbende/Azure-ttk-theme)
 
 ### Tools Used
 
 - [Sublime Text 4](https://www.sublimetext.com/), [Notepad++](https://notepad-plus-plus.org/) and [VSCode](https://code.visualstudio.com/) for text editing and programming
 
 - [MarkText](https://www.marktext.cc/) for README editing
+
+### Style and Formatting
+
+This code attempts to follow [PEP 484](https://peps.python.org/pep-0484/) and [PEP 604](https://peps.python.org/pep-0604/) for type hints and [PEP 8](https://peps.python.org/pep-0008/) and the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html) for style and formatting, with programmer's freedom on any conflicting elements. Line width is set to 100 characters (not 80) because it's 2023 and we have high-resolution and ultrawide monitors.
 
 ### Decisions (Nerd Questions)
 
@@ -351,13 +334,13 @@ This code attempts to follow [PEP 484](https://peps.python.org/pep-0484/) for ty
 
 **A:** I didn't have experience with modern UIs in Python, but I had experience with tkinter/Tcl/Tk and OpenCV. OpenCV and tkinter were able to do what I needed. Feel free to rewrite using [PyQt5](https://pypi.org/project/PyQt5/), [DearPyGUI](https://pypi.org/project/dearpygui/), [PySimpleGUI](https://pypi.org/project/PySimpleGUI/), or other modern cross-platform framework and fork/pull request. Not sure what else exists for OpenCV, but go nuts.
 
-**Q:** Why did you use a third-party theme for the GUI instead of just the built-in ones?
+**Q:** Why did you use a [third-party theme](https://github.com/rdbende/Azure-ttk-theme) for the GUI instead of just the built-in ones?
 
-**A:** Honestly, I didn't want to spend the time to make a dark version of the default theme for Windows (and yes, a dark mode was totally necessary, my eyes were burning). MacOS's default `aqua` theme handled it automatically without me telling it to, but Windows would have just taken too long to get right (unless I'm missing something obvious). It's only a few lines of code to determine the system theme, so adding a theme where I can just tell it "light" or "dark" was far less of a headache. And the theme looks better, in my opinion.
+**A:** Honestly, I didn't want to spend the time to make a dark version of the default theme for Windows (and yes, a dark mode was totally necessary). MacOS's default `aqua` theme handled it automatically without me telling it to, but Windows would have just taken too long to get right (unless I'm missing something obvious). It's only a few lines of code to determine the system theme, so adding a theme where I can just tell it "light" or "dark" was far less of a headache. And the theme looks better, in my opinion.
 
 ## Support
 
-For support, email me at [logan.orians@gmail.com](mailto:logan.orians@gmail.com) with "chicken map" in the subject line, or message me on [Discord](https://discord.com/users/l_orians) and I will get back to you as soon as possible. Please attach `error_log.txt` to your message (and any errors present in Command Prompt/Terminal) and describe what you were doing when the error occurred.
+For support, email me at [logan.orians@gmail.com](mailto:logan.orians@gmail.com) with "chicken map" in the subject line, or message me on [Discord](https://discord.com/users/l_orians) and I will get back to you as soon as possible. Please attach `error_log.txt` to your message (and copy+paste/screenshot+attach any errors present in Command Prompt/Terminal) and describe what you were doing when the error occurred.
 
 ## License
 
