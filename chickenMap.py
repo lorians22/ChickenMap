@@ -27,7 +27,7 @@ No implied support or warranty.
 # 5) remove parentheses where unncessary
 
 
-__version__ = '2023.10.4'
+__version__ = '2023.11.1'
 __author__ = 'Logan Orians'
 
 
