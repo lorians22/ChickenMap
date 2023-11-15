@@ -17,7 +17,7 @@ No implied support or warranty.
 # MacOS: python3 options_gui.py
 
 
-__version__ = '2023.11.1'
+__version__ = '2023.11.2'
 __author__ = 'Logan Orians'
 
 
@@ -329,7 +329,7 @@ def validate_duration(var: TStringVar, err_msgs: dict[str, str],
         clear_error('Duration', err_msgs, label_err)
     except ValueError:
         add_error('Duration',
-                  'Enter a value between 1 and 60 for Duration.',
+                  'Enter a value from 1-60 for Duration.',
                   err_msgs, label_err)
 
 
@@ -355,7 +355,7 @@ def validate_scale(var: TStringVar, font_vars: list[TStringVar],
             update_font_preview(font_vars, canvas, sys_theme) #update preview
     except ValueError:
         add_error('Font Scale',
-                  'Enter a value between 0 and 2.5 for Scale.',
+                  'Enter a value from 0-2.5 for Font scale.',
                   err_msgs, label_err)
 
 
@@ -380,7 +380,7 @@ def validate_thickness(var: TStringVar, font_vars: list[TStringVar],
             update_font_preview(font_vars, canvas, sys_theme)
     except ValueError:
         add_error('Font Thickness',
-                  'Enter a positive integer for Font Thickness.',
+                  'Enter a positive integer for Font thickness.',
                   err_msgs, label_err)
 
 
@@ -649,7 +649,7 @@ def main():
                         sticky='w', padx=(20, 0), pady=2)
     duration_var = tk.StringVar(value=saved_args['duration'])
     spinbox_duration = ttk.Spinbox(frame, from_=1, to=60, increment=1,
-                                   textvariable=duration_var, width=width)
+                                   textvariable=duration_var, width=width-8)
     spinbox_duration.grid(row=label_duration.grid_info()['row'],
                           column=1, pady=3)
     duration_var.trace_add('write',
@@ -679,28 +679,28 @@ def main():
     font_menu = ttk.OptionMenu(frame, font_var, font_value, *font_options,
                                command=lambda *args: update_font_preview(
                                    font_vars, canvas, sys_theme))
-    font_menu.config(width=29)
+    font_menu.config(width=width-3)
     font_menu.grid(row=label_font.grid_info()['row'], column=1, pady=3)
     option_vars.append(font_var)
 
     # Color picker
-    label_font_color = ttk.Label(frame, text='Font Color:')
+    label_font_color = ttk.Label(frame, text='Font color:')
     label_font_color.grid(row=label_font.grid_info()['row']+1, column=0,
                           sticky='w', padx=(20, 0))
     color_var = tk.StringVar(value=saved_args['font_color'])
     option_vars.append(color_var)
-    color_button = ttk.Button(frame, text='Pick Font Color', width=14,
+    color_button = ttk.Button(frame, text='Pick Font color', width=14,
                               command=lambda: pick_color(
                                   font_vars, canvas, sys_theme))
     color_button.grid(row=label_font_color.grid_info()['row'],
                       column=1, pady=3)
 
-    label_font_scale = ttk.Label(frame, text='Font Scale:')
+    label_font_scale = ttk.Label(frame, text='Font scale:')
     label_font_scale.grid(row=label_font_color.grid_info()['row']+1, column=0,
                           sticky='w', padx=(20, 0))
     font_scale_var = tk.StringVar(value=saved_args['font_scale'])
     spinbox_font_scale = ttk.Spinbox(frame, from_=0.1, to=2.5, increment=0.1,
-                                     textvariable=font_scale_var, width=width)
+                                     textvariable=font_scale_var, width=width-8)
     spinbox_font_scale.grid(row=label_font_scale.grid_info()['row'],
                             column=1, pady=3)
     font_scale_var.trace_add('write',
@@ -709,13 +709,13 @@ def main():
                                  canvas, sys_theme))
     option_vars.append(font_scale_var)
 
-    label_font_thickness = ttk.Label(frame, text='Font Thickness:')
+    label_font_thickness = ttk.Label(frame, text='Font thickness:')
     label_font_thickness.grid(row=label_font_scale.grid_info()['row']+1,
                               column=0, sticky='w', padx=(20, 0))
     font_thickness_var = tk.StringVar(value=saved_args['font_thickness'])
     spinbox_font_thickness = ttk.Spinbox(frame, from_=1, to=5, increment=1,
                                          textvariable=font_thickness_var,
-                                         width=width)
+                                         width=width-8)
     spinbox_font_thickness.grid(row=label_font_thickness.grid_info()['row'],
                                 column=1, pady=3)
     font_thickness_var.trace_add('write',
