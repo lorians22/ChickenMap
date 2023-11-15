@@ -16,18 +16,17 @@ No implied support or warranty.
 # requirements: pip3 install -r requirements.txt
 
 # Run Program
-# Windows:      py chickenMap.py
-# MacOS:        python3 chickenMap.py
+# Windows:      py chicken_map.py
+# MacOS:        python3 chicken_map.py
 
 # TODO:
-# 1) .bat/.sh/.command files for double-click running (no cmd/terminal)
-# 2) shift-left click to add a note to the spreadsheet - use flags in mouse_cb
-# 3) add more error loggers
-# 4) location-aware text drawing; how right-click menu flows up/down from cursor
-# 5) remove parentheses where unncessary
+# 1) shift-left click to add a note to the spreadsheet - use flags in mouse_cb
+# 2) add more error loggers
+# 3) location-aware text drawing; how right-click menu flows up/down from cursor
+# 4) remove parentheses where unncessary (GPSG)
 
 
-__version__ = '2023.11.1'
+__version__ = '2023.11.2'
 __author__ = 'Logan Orians'
 
 
