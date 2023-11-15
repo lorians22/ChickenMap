@@ -26,11 +26,11 @@ Version 2023.11.2
 
 - [How to Use](#how-to-use)
   
-  - [chicken_map Instructions](#chicken-map-instructions)
+  - [chicken_map Instructions](#chicken_map-instructions)
 
 - [Usage](#usage)
   
-  - [options_gui](#options-gui)
+  - [options_gui](#options_gui)
 
 - [Compatibility](#compatibility)
 
