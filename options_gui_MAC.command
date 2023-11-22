@@ -1,3 +1,3 @@
 #!/bin/bash
 
-python3 options_gui.py
+python3 $(dirname $0)/options_gui.py
