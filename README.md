@@ -106,13 +106,23 @@ Version 2023.11.2
 
 ## macOS Gatekeeper Override
 
-For macOS users, running `.command` files downloaded from the Internet will likely trigger the [Gatekeeper](https://support.apple.com/guide/security/gatekeeper-and-runtime-protection-sec5599b66df/web) and won't let you run the command. This happens because I am unable to digitally sign the software without a certificate from a Certificate Authority, and this can be an annoyingly lengthy and <u>not free</u> process. Anyway, [Apple provides an override tutorial](https://support.apple.com/en-us/HT202491#openanyway). Basically:
+For macOS users, running `.command` files downloaded from the Internet will likely trigger the [Gatekeeper](https://support.apple.com/guide/security/gatekeeper-and-runtime-protection-sec5599b66df/web) and won't let you run the command.
+
+<img title="" src=".readme_imgs/gatekeeper_first_open.png" alt="" width="236" data-align="center">
+
+This happens because I am unable to digitally sign the software without a certificate from a Certificate Authority, and this can be an annoyingly lengthy and <u>not free</u> process. Anyway, [Apple provides an override tutorial](https://support.apple.com/en-us/HT202491#openanyway). Basically:
 
 - Open System Preferences (settings)
 
-- Nagivate to Privacy and Security
+- Nagivate to Privacy & Security/Security & Privacy, then click Open Anyway.
+  
+  | MacOS 12                                                                      | MacOS 13 |
+  |:-----------------------------------------------------------------------------:| -------- |
+  | <img src=".readme_imgs/security_and_privacy.png" title="" alt="" width="252"> |          |
 
-- Click *Open Anyway* next to the `.command` file in the Security section.
+- Click Open.
+  
+  <img title="" src=".readme_imgs/open_anyway.png" alt="" width="205" data-align="center">
 
 ## Short Installation Instructions
 
@@ -140,11 +150,15 @@ Please continue with the sections below for full instructions.
 
 - Tesseract 5.x (tested with 5.3.2).
   
-  - First, install [Homebrew](https://brew.sh/) by typing the below command into [Terminal](#command-line-knowledge). If you already have Homebrew installed, entering `which brew` will show you the install location, and you can skip to the next step:
+  - First, install [Homebrew](https://brew.sh/) by entering the below command into [Terminal](#command-line-knowledge); it will ask you to enter your login password. Homebrew requires Xcode Command Line Tools (~1.7GB), which it will install automatically. If you already have Homebrew installed, you can skip to the last step (install Tesseract).
     
     ```bash
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     ```
+  
+  - **Important!** After installation, enter (copy+paste) the two commands brew tells you to enter under Next Steps. Image shown below for reference only; note that the first command may extend onto the second line.
+    
+    ![](.readme_imgs/brew_commands.png)
   
   - Then install Tesseract:
     
@@ -264,7 +278,7 @@ Tested with:
   
   - macOS
     
-    - 2020 MacBook Air (M1) running macOS 13
+    - 2020 MacBook Air (M1) running macOS 12.6.3
     
     - 2015 MacBook Pro (Intel) running macOS 12.6.3
     

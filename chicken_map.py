@@ -49,6 +49,8 @@ import pytesseract # type: ignore
 
 import options_gui
 
+# Change working directory if executed from .command
+os.chdir(os.path.dirname(__file__))
 
 TVideoCapture = TypeVar('TVideoCapture', bound=cv2.VideoCapture)
 
@@ -450,7 +452,7 @@ def main():
                         anno.typing = False
                         anno.show_anno = False
                         anno.anno_text = ''
-                    elif key_press == 8: #Backspace
+                    elif key_press == 8 or key_press == 127: #Backspace/Del
                         if anno.anno_text: #DON'T COMBINE INTO ^ELIF
                             anno.anno_text = anno.anno_text[:-1]
                     elif chr(key_press) in ascii_allowlist: #printable ascii

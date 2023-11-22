@@ -1,3 +1,3 @@
 #!/bin/bash
 
-python3 chicken_map.py
+python3 $(dirname $0)/chicken_map.py
