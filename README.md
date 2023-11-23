@@ -2,7 +2,7 @@
 
 A 2D coordinate mapping program for monitoring the location of chickens.
 
-Version 2023.11.2
+Version 2023.11.3
 
 ## Table of Contents
 
@@ -238,7 +238,9 @@ Please do not edit the `.options.json` file directly (if you see it).
 
 ### options_gui
 
-Change the options as you see fit. There is a font preview at the bottom to show how your selected font options will look in `chicken_map`. Press Save to save your options. Press Close to close the program. Press Defaults to reset the options to default.
+<img title="" src=".readme_imgs/options_gui.png" alt="" data-align="center">
+
+Change the options as you see fit. There is a font preview at the bottom to show how your selected font options will look in `chicken_map`. Press Save to save your options. Press Close to close the program. Press Defaults to reset the options to default; **you must press Save** after pressing Defaults for the default options to apply to `chicken_map`.
 
 **Input video file**: Use the file dialog window to choose the chicken video
 
@@ -328,7 +330,7 @@ This program does not store or transmit any user data to an external source and 
 
 ### Style and Formatting
 
-This code attempts to follow [PEP 8](https://peps.python.org/pep-0008/) and the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html) for style and formatting, with programmer's freedom on any conflicting elements. Line width is set to 100 characters (not 80) because it's 2023 and we have high-resolution and ultrawide monitors.
+This code attempts to follow [PEP 8](https://peps.python.org/pep-0008/) and the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html) for style and formatting, with programmer's freedom on any conflicting or unaddressed elements.
 
 ### Type Hints
 
@@ -338,7 +340,7 @@ This code follows [PEP 484](https://peps.python.org/pep-0484/) + [PEP 604](https
 
 **Q:** Why did you change the mouse callback function for OpenCV so much?
 
-**A:** *Stop stalking my commits*        All the tutorials suck and just have you use a global variable if you need to get something like `x` and `y` from the callback (you can't grab the return value of a callback function). Nothing explicitly wrong with globals, I just like to avoid them when I can so I don't risk interfering with something unexpected. You can set the callback function to a class method, define it in main() as a nested function, or actually read the documentation and notice that the `param` argument might as well be nearly purpose-built for this, and yet no one uses it. Just pass in an *object* for `param` and set a value in the callback and bam, problem solved.
+**A:** *Stop stalking my commits*        All the tutorials suck and just have you use a global variable if you need to get something like `x` and `y` from the callback (you can't grab the return value of a callback function). Nothing explicitly wrong with globals, I just like to avoid them when I can so I don't risk interfering with something unexpected. You can set the callback function to a class method, define it in main() as a nested function, or actually read the documentation and notice that the `param` argument might as well be nearly purpose-built for this, and yet no one uses it. Just pass in an *object* for `param` and set a value in the callback and bam, problem solved. Nested function in main() is pretty good though.
 
 **Q:** Why did you make *x* a `SimpleNamespace` instead of a `dict`?
 

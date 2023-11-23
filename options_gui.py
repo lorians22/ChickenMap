@@ -17,7 +17,7 @@ No implied support or warranty.
 # MacOS: python3 options_gui.py
 
 
-__version__ = '2023.11.2'
+__version__ = '2023.11.3'
 __author__ = 'Logan Orians'
 
 
@@ -49,6 +49,8 @@ from PIL import ImageTk
 TRoot = TypeVar('TRoot', bound=tk.Tk)
 TCanvas = TypeVar('TCanvas', bound=tk.Canvas)
 TLabel = TypeVar('TLabel', bound=ttk.Label)
+TEntry = TypeVar('TEntry', bound=ttk.Entry)
+TSpinbox = TypeVar('TSpinbox', bound=ttk.Spinbox)
 TOptionmenu = TypeVar('TOptionmenu', bound=ttk.OptionMenu)
 TStringVar = TypeVar('TStringVar', bound=tk.StringVar)
 TBooleanVar = TypeVar('TBooleanVar', bound=tk.BooleanVar)
@@ -313,7 +315,7 @@ def update_font_preview(font_vars: list[TStringVar], canvas: TCanvas,
 
 
 def validate_duration(var: TStringVar, err_msgs: dict[str, str],
-                      label_err: TLabel) -> None:
+                      label_err: TLabel, widget: TSpinbox) -> None:
     """Callback function to validate duration input and add error if invalid.
 
     Args:
@@ -327,15 +329,17 @@ def validate_duration(var: TStringVar, err_msgs: dict[str, str],
         if entry < 1 or entry > 60:
             raise ValueError
         clear_error('Duration', err_msgs, label_err)
+        widget.state(['!invalid'])
     except ValueError:
         add_error('Duration',
                   'Enter a value from 1-60 for Duration.',
                   err_msgs, label_err)
+        widget.state(['invalid'])
 
 
 def validate_scale(var: TStringVar, font_vars: list[TStringVar],
                    err_msgs: dict[str, str], label_err: TLabel, canvas: TCanvas,
-                   sys_theme: str) -> None:
+                   sys_theme: str, widget: TSpinbox) -> None:
     """Callback function to validate scale input and add error if invalid.
 
     Args:
@@ -351,17 +355,20 @@ def validate_scale(var: TStringVar, font_vars: list[TStringVar],
         if entry <= 0 or entry > 2.5:
             raise ValueError
         clear_error('Font Scale', err_msgs, label_err)
+        widget.state(['!invalid'])
         if not err_msgs:
             update_font_preview(font_vars, canvas, sys_theme) #update preview
     except ValueError:
         add_error('Font Scale',
                   'Enter a value from 0-2.5 for Font scale.',
                   err_msgs, label_err)
+        widget.state(['invalid'])
 
 
 def validate_thickness(var: TStringVar, font_vars: list[TStringVar],
                        err_msgs: dict[str, str], label_err: TLabel,
-                       canvas: TCanvas, sys_theme: str) -> None:
+                       canvas: TCanvas, sys_theme: str,
+                       widget: TSpinbox) -> None:
     """Callback function to validate thickness input and add error if invalid.
 
     Args:
@@ -376,16 +383,19 @@ def validate_thickness(var: TStringVar, font_vars: list[TStringVar],
         if int(var.get()) <= 0:
             raise ValueError
         clear_error('Font Thickness', err_msgs, label_err)
+        widget.state(['!invalid'])
         if not err_msgs:
             update_font_preview(font_vars, canvas, sys_theme)
     except ValueError:
         add_error('Font Thickness',
                   'Enter a positive integer for Font thickness.',
                   err_msgs, label_err)
+        widget.state(['invalid'])
 
 
 def validate_keys(err_msgs: dict[str, str], label_err: TLabel,
-                  approved_keys: str, key_vars: list[TStringVar]) -> None:
+                  approved_keys: str, key_vars: list[TStringVar],
+                  key_widgets: list[TEntry]) -> None:
     """Callback wrapper func to check all key inputs for invalid/repeated keys.
 
     Args:
@@ -399,16 +409,16 @@ def validate_keys(err_msgs: dict[str, str], label_err: TLabel,
     key_var_vals = [key_var.get() for key_var in key_vars]
 
     validate_key(key_var_vals[0], 'Exit Key', err_msgs, label_err,
-                 approved_keys, key_var_vals[1:])
+                 approved_keys, key_var_vals[1:], key_widgets[0])
     validate_key(key_var_vals[1], 'Clear Key', err_msgs, label_err,
-                 approved_keys, key_var_vals[::2])
+                 approved_keys, key_var_vals[::2], key_widgets[1])
     validate_key(key_var_vals[2], 'Pause Key', err_msgs, label_err,
-                 approved_keys, key_var_vals[:2])
+                 approved_keys, key_var_vals[:2], key_widgets[2])
 
 
 def validate_key(val: str, name: str, err_msgs: dict[str, str],
                  label_err: TLabel, approved_keys: str,
-                 other_key_vals: list[str]) -> None:
+                 other_key_vals: list[str], widget: TEntry) -> None:
     """Validates key input and adds error if invalid.
 
     Args:
@@ -426,12 +436,14 @@ def validate_key(val: str, name: str, err_msgs: dict[str, str],
         if not(len(val) == 1 and val in approved_keys) and val.lower() != 'esc':
             raise ValueError(f'{name}: enter a key a-z/0-9 or type Esc.')
         clear_error(name, err_msgs, label_err)
+        widget.state(['!invalid'])
     except ValueError as e:
         add_error(name, str(e), err_msgs, label_err)
+        widget.state(['invalid'])
 
 
 def validate_dir(var: TStringVar, name: str, err_msgs: dict[str, str],
-                 label_err: TLabel) -> None:
+                 label_err: TLabel, widget: TEntry) -> None:
     """Callback function to validate directory input and add error if invalid.
 
     Args:
@@ -448,9 +460,11 @@ def validate_dir(var: TStringVar, name: str, err_msgs: dict[str, str],
         if any(inv_char in entry for inv_char in invalid_chars) or entry == '':
             raise ValueError
         clear_error(name, err_msgs, label_err)
+        widget.state(['!invalid'])
     except ValueError:
         add_error(name, f'{name} can\'t contain < > : " | ? *', err_msgs,
                   label_err)
+        widget.state(['invalid'])
 
 
 def close_window(root: TRoot) -> None:
@@ -589,7 +603,7 @@ def main():
     sheet_var.trace_add('write',
                         lambda *args: validate_dir(
                             sheet_var, 'Spreadsheet folder', err_msgs,
-                            label_err))
+                            label_err, entry_sheet))
     option_vars.append(sheet_var)
 
     label_anno = ttk.Label(frame, text='Annotated images folder:')
@@ -601,7 +615,7 @@ def main():
     anno_var.trace_add('write',
                        lambda *args: validate_dir(
                            anno_var, 'Annotation folder', err_msgs,
-                           label_err))
+                           label_err, entry_anno))
     option_vars.append(anno_var)
 
     label_keys = ttk.Label(frame, text='Program Keys & Options', font=bold_font)
@@ -617,7 +631,8 @@ def main():
                         column=1, pady=3)
     exit_key_var.trace_add('write',
                            lambda *args: validate_keys(
-                               err_msgs, label_err, approved_keys, key_vars))
+                               err_msgs, label_err, approved_keys, key_vars,
+                               key_widgets))
     option_vars.append(exit_key_var)
 
     label_clear_key = ttk.Label(frame, text='Clear key:')
@@ -629,7 +644,8 @@ def main():
                          column=1, pady=3)
     clear_key_var.trace_add('write',
                             lambda *args: validate_keys(
-                                err_msgs, label_err, approved_keys, key_vars))
+                                err_msgs, label_err, approved_keys, key_vars,
+                                key_widgets))
     option_vars.append(clear_key_var)
 
     label_pause_key = ttk.Label(frame, text='Pause key:')
@@ -641,7 +657,8 @@ def main():
                          column=1, pady=3)
     pause_key_var.trace_add('write',
                             lambda *args: validate_keys(
-                                err_msgs, label_err, approved_keys, key_vars))
+                                err_msgs, label_err, approved_keys, key_vars,
+                                key_widgets))
     option_vars.append(pause_key_var)
 
     label_duration = ttk.Label(frame, text='Coordinate duration:')
@@ -654,7 +671,8 @@ def main():
                           column=1, pady=3)
     duration_var.trace_add('write',
                            lambda *args: validate_duration(
-                               duration_var, err_msgs, label_err))
+                               duration_var, err_msgs, label_err,
+                               spinbox_duration))
     option_vars.append(duration_var)
 
     label_keys = ttk.Label(frame, text='Font Options', font=bold_font)
@@ -706,7 +724,7 @@ def main():
     font_scale_var.trace_add('write',
                              lambda *args: validate_scale(
                                  font_scale_var, font_vars, err_msgs, label_err,
-                                 canvas, sys_theme))
+                                 canvas, sys_theme, spinbox_font_scale))
     option_vars.append(font_scale_var)
 
     label_font_thickness = ttk.Label(frame, text='Font thickness:')
@@ -721,7 +739,8 @@ def main():
     font_thickness_var.trace_add('write',
                                  lambda *args: validate_thickness(
                                      font_thickness_var, font_vars, err_msgs,
-                                     label_err, canvas, sys_theme))
+                                     label_err, canvas, sys_theme,
+                                     spinbox_font_thickness))
     option_vars.append(font_thickness_var)
 
 
@@ -734,6 +753,7 @@ def main():
     # Create sliced option_vars lists (avoids find+replace shenanigans)
     font_vars = option_vars[9:]
     key_vars = option_vars[5:8]
+    key_widgets = [entry_exit_key, entry_clear_key, entry_pause_key]
 
 
     # Initialize font preview
@@ -771,6 +791,9 @@ def main():
     label_ack = ttk.Label(save_close_frame, foreground='green')
     label_ack.grid(row=save_button.grid_info()['row'], column=0,
                    padx=6, pady=(0, 6))
+
+    #print(entry_sheet.state())
+    #entry_sheet.state(["invalid"])
 
     root.mainloop()
 

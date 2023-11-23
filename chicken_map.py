@@ -26,7 +26,7 @@ No implied support or warranty.
 # 4) remove parentheses where unncessary (GPSG)
 
 
-__version__ = '2023.11.2'
+__version__ = '2023.11.3'
 __author__ = 'Logan Orians'
 
 
@@ -49,7 +49,7 @@ import pytesseract # type: ignore
 
 import options_gui
 
-# Change working directory if executed from .command
+# Change working directory for .command executions
 os.chdir(os.path.dirname(__file__))
 
 TVideoCapture = TypeVar('TVideoCapture', bound=cv2.VideoCapture)
