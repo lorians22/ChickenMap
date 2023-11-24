@@ -17,7 +17,7 @@ No implied support or warranty.
 # MacOS: python3 options_gui.py
 
 
-__version__ = '2023.11.3'
+__version__ = '2023.11.4'
 __author__ = 'Logan Orians'
 
 
@@ -234,16 +234,19 @@ def set_defaults(default_vars: list[Any], canvas: TCanvas,
     default_vars[2].set('Select Chicken Location')
     default_vars[3].set('sheets/') #spreadsheets directory
     default_vars[4].set('annotated_images/') #annotations directory
-    default_vars[5].set('q') #exit key
-    default_vars[6].set('c') #clear key
-    default_vars[7].set('p') #pause key
-    default_vars[8].set('5.0') #duration
-    default_vars[9].set('FONT_HERSHEY_SIMPLEX') #font
-    default_vars[10].set('(0, 255, 0)') #font color tuple, green
-    default_vars[11].set('1.0') #font scale
-    default_vars[12].set('2') #font thickness
+    default_vars[5].set('screencaps/') #screencaps directory
+    default_vars[6].set('q') #exit key
+    default_vars[7].set('c') #clear key
+    default_vars[8].set('p') #pause key
+    default_vars[9].set('s') #screencap key
+    default_vars[10].set('n') #note key
+    default_vars[11].set('5.0') #duration
+    default_vars[12].set('FONT_HERSHEY_SIMPLEX') #font
+    default_vars[13].set('(0, 255, 0)') #font color tuple, green
+    default_vars[14].set('1.0') #font scale
+    default_vars[15].set('2') #font thickness
     
-    update_font_preview(default_vars[9:], canvas, sys_theme)
+    update_font_preview(default_vars[12:], canvas, sys_theme)
 
 
 def save_options(root: TRoot, option_vars: list[Any],
@@ -267,14 +270,17 @@ def save_options(root: TRoot, option_vars: list[Any],
     else: args['three_d'] = False
     args['out_dir'] = option_vars[3].get()
     args['anno_dir'] = option_vars[4].get()
-    args['exit_key'] = option_vars[5].get()
-    args['clear_key'] = option_vars[6].get()
-    args['pause_key'] = option_vars[7].get()
-    args['duration'] = float(option_vars[8].get())
-    args['font'] = convert_font_name_to_int(option_vars[9].get())
-    args['font_color'] = ast.literal_eval(option_vars[10].get())
-    args['font_scale'] = float(option_vars[11].get())
-    args['font_thickness'] = int(option_vars[12].get())
+    args['screencaps_dir'] = option_vars[5].get()
+    args['exit_key'] = option_vars[6].get()
+    args['clear_key'] = option_vars[7].get()
+    args['pause_key'] = option_vars[8].get()
+    args['screencap_key'] = option_vars[9].get()
+    args['note_key'] = option_vars[10].get()
+    args['duration'] = float(option_vars[11].get())
+    args['font'] = convert_font_name_to_int(option_vars[12].get())
+    args['font_color'] = ast.literal_eval(option_vars[13].get())
+    args['font_scale'] = float(option_vars[14].get())
+    args['font_thickness'] = int(option_vars[15].get())
     
     write_args_to_file(args, '.options.json')
     label_ack.config(text='Saved!')
@@ -329,12 +335,12 @@ def validate_duration(var: TStringVar, err_msgs: dict[str, str],
         if entry < 1 or entry > 60:
             raise ValueError
         clear_error('Duration', err_msgs, label_err)
-        widget.state(['!invalid'])
+        widget.state(['!invalid']) #tcl keyword for reverting from error sprite
     except ValueError:
         add_error('Duration',
                   'Enter a value from 1-60 for Duration.',
                   err_msgs, label_err)
-        widget.state(['invalid'])
+        widget.state(['invalid']) #tcl keyword for changing to error sprite
 
 
 def validate_scale(var: TStringVar, font_vars: list[TStringVar],
@@ -355,14 +361,14 @@ def validate_scale(var: TStringVar, font_vars: list[TStringVar],
         if entry <= 0 or entry > 2.5:
             raise ValueError
         clear_error('Font Scale', err_msgs, label_err)
-        widget.state(['!invalid'])
+        widget.state(['!invalid']) #tcl keyword for reverting from error sprite
         if not err_msgs:
             update_font_preview(font_vars, canvas, sys_theme) #update preview
     except ValueError:
         add_error('Font Scale',
                   'Enter a value from 0-2.5 for Font scale.',
                   err_msgs, label_err)
-        widget.state(['invalid'])
+        widget.state(['invalid']) #tcl keyword for changing to error sprite
 
 
 def validate_thickness(var: TStringVar, font_vars: list[TStringVar],
@@ -383,14 +389,14 @@ def validate_thickness(var: TStringVar, font_vars: list[TStringVar],
         if int(var.get()) <= 0:
             raise ValueError
         clear_error('Font Thickness', err_msgs, label_err)
-        widget.state(['!invalid'])
+        widget.state(['!invalid']) #tcl keyword for reverting from error sprite
         if not err_msgs:
             update_font_preview(font_vars, canvas, sys_theme)
     except ValueError:
         add_error('Font Thickness',
                   'Enter a positive integer for Font thickness.',
                   err_msgs, label_err)
-        widget.state(['invalid'])
+        widget.state(['invalid']) #tcl keyword for changing to error sprite
 
 
 def validate_keys(err_msgs: dict[str, str], label_err: TLabel,
@@ -411,9 +417,16 @@ def validate_keys(err_msgs: dict[str, str], label_err: TLabel,
     validate_key(key_var_vals[0], 'Exit Key', err_msgs, label_err,
                  approved_keys, key_var_vals[1:], key_widgets[0])
     validate_key(key_var_vals[1], 'Clear Key', err_msgs, label_err,
-                 approved_keys, key_var_vals[::2], key_widgets[1])
+                 approved_keys, key_var_vals[:1]+key_var_vals[2:],
+                 key_widgets[1])
     validate_key(key_var_vals[2], 'Pause Key', err_msgs, label_err,
-                 approved_keys, key_var_vals[:2], key_widgets[2])
+                 approved_keys, key_var_vals[:2]+key_var_vals[3:],
+                 key_widgets[2])
+    validate_key(key_var_vals[3], 'ScnCp Key', err_msgs, label_err,
+                 approved_keys, key_var_vals[:3]+key_var_vals[4:],
+                 key_widgets[3])
+    validate_key(key_var_vals[4], 'Note Key', err_msgs, label_err,
+                 approved_keys, key_var_vals[:4], key_widgets[4])
 
 
 def validate_key(val: str, name: str, err_msgs: dict[str, str],
@@ -434,12 +447,12 @@ def validate_key(val: str, name: str, err_msgs: dict[str, str],
         if val in other_key_vals:
             raise ValueError('Do not reuse the same key.')
         if not(len(val) == 1 and val in approved_keys) and val.lower() != 'esc':
-            raise ValueError(f'{name}: enter a key a-z/0-9 or type Esc.')
+            raise ValueError(f'{name}: enter a key a-z/0-9 or type Esc')
         clear_error(name, err_msgs, label_err)
-        widget.state(['!invalid'])
+        widget.state(['!invalid']) #tcl keyword for reverting from error sprite
     except ValueError as e:
         add_error(name, str(e), err_msgs, label_err)
-        widget.state(['invalid'])
+        widget.state(['invalid']) #tcl keyword for changing to error sprite
 
 
 def validate_dir(var: TStringVar, name: str, err_msgs: dict[str, str],
@@ -460,11 +473,11 @@ def validate_dir(var: TStringVar, name: str, err_msgs: dict[str, str],
         if any(inv_char in entry for inv_char in invalid_chars) or entry == '':
             raise ValueError
         clear_error(name, err_msgs, label_err)
-        widget.state(['!invalid'])
+        widget.state(['!invalid']) #tcl keyword for reverting from error sprite
     except ValueError:
         add_error(name, f'{name} can\'t contain < > : " | ? *', err_msgs,
                   label_err)
-        widget.state(['invalid'])
+        widget.state(['invalid']) #tcl keyword for changing to error sprite
 
 
 def close_window(root: TRoot) -> None:
@@ -578,6 +591,8 @@ def main():
 
     var_3d = tk.BooleanVar()
     option_vars.append(var_3d)
+    #style='Toggle.TButton'
+    #style='Switch.TCheckbutton'
     checkbox_3d = ttk.Checkbutton(frame, text='3D?', variable=var_3d,
                                   command=lambda *args: toggle_menu_state(
                                       var_3d, menu_3d, var_location_3d))
@@ -618,8 +633,20 @@ def main():
                            label_err, entry_anno))
     option_vars.append(anno_var)
 
+    label_screencap = ttk.Label(frame, text='Screencaps folder:')
+    label_screencap.grid(row=label_anno.grid_info()['row']+1, column=0,
+                    sticky='w', padx=(20, 0), pady=2)
+    screencap_var = tk.StringVar(value=saved_args['screencaps_dir'])
+    entry_screencap = ttk.Entry(frame, textvariable=screencap_var, width=width)
+    entry_screencap.grid(row=label_screencap.grid_info()['row'], column=1, pady=3)
+    screencap_var.trace_add('write',
+                       lambda *args: validate_dir(
+                           screencap_var, 'Screencaps folder', err_msgs,
+                           label_err, entry_screencap))
+    option_vars.append(screencap_var)
+
     label_keys = ttk.Label(frame, text='Program Keys & Options', font=bold_font)
-    label_keys.grid(row=label_anno.grid_info()['row']+1, column=0,
+    label_keys.grid(row=label_screencap.grid_info()['row']+1, column=0,
                     sticky='w')
 
     label_exit_key = ttk.Label(frame, text='Exit key:')
@@ -661,8 +688,34 @@ def main():
                                 key_widgets))
     option_vars.append(pause_key_var)
 
+    label_screencap_key = ttk.Label(frame, text='Screencap key:')
+    label_screencap_key.grid(row=label_pause_key.grid_info()['row']+1, column=0,
+                        sticky='w', padx=(20, 0), pady=2)
+    screencap_key_var = tk.StringVar(value=saved_args['screencap_key'])
+    entry_screencap_key = ttk.Entry(frame, textvariable=screencap_key_var,
+                                    width=width)
+    entry_screencap_key.grid(row=label_screencap_key.grid_info()['row'],
+                             column=1, pady=3)
+    screencap_key_var.trace_add('write',
+                                lambda *args: validate_keys(
+                                    err_msgs, label_err, approved_keys,
+                                    key_vars, key_widgets))
+    option_vars.append(screencap_key_var)
+
+    label_note_key = ttk.Label(frame, text='Spreadsheet note key:')
+    label_note_key.grid(row=label_screencap_key.grid_info()['row']+1, column=0,
+                        sticky='w', padx=(20, 0), pady=2)
+    note_key_var = tk.StringVar(value=saved_args['note_key'])
+    entry_note_key = ttk.Entry(frame, textvariable=note_key_var, width=width)
+    entry_note_key.grid(row=label_note_key.grid_info()['row'], column=1, pady=3)
+    note_key_var.trace_add('write',
+                                lambda *args: validate_keys(
+                                    err_msgs, label_err, approved_keys,
+                                    key_vars, key_widgets))
+    option_vars.append(note_key_var)
+
     label_duration = ttk.Label(frame, text='Coordinate duration:')
-    label_duration.grid(row=label_pause_key.grid_info()['row']+1, column=0,
+    label_duration.grid(row=label_note_key.grid_info()['row']+1, column=0,
                         sticky='w', padx=(20, 0), pady=2)
     duration_var = tk.StringVar(value=saved_args['duration'])
     spinbox_duration = ttk.Spinbox(frame, from_=1, to=60, increment=1,
@@ -751,9 +804,10 @@ def main():
 
 
     # Create sliced option_vars lists (avoids find+replace shenanigans)
-    font_vars = option_vars[9:]
-    key_vars = option_vars[5:8]
-    key_widgets = [entry_exit_key, entry_clear_key, entry_pause_key]
+    font_vars = option_vars[12:]
+    key_vars = option_vars[6:11]
+    key_widgets = [entry_exit_key, entry_clear_key, entry_pause_key,
+                   entry_screencap_key, entry_note_key]
 
 
     # Initialize font preview
@@ -792,8 +846,6 @@ def main():
     label_ack.grid(row=save_button.grid_info()['row'], column=0,
                    padx=6, pady=(0, 6))
 
-    #print(entry_sheet.state())
-    #entry_sheet.state(["invalid"])
 
     root.mainloop()
 
