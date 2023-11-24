@@ -69,6 +69,15 @@ class FilePath:
 
         return directory
 
+    def _prevent_filename_overwrite(self) -> None:
+        """Sets next available filename to avoid overwrite at same timestamp."""
+
+        root, ext = os.path.splitext(self.filename) #get name and extension
+        num = 0
+        while os.path.exists(self.directory + self.filename):
+            num += 1
+            self.filename = f"{root}_{num}{ext}"
+
     def __str__(self) -> str:
         return f"{self.directory}{self.filename}"
 
@@ -138,14 +147,15 @@ class AnnotationManager(FilePath):
         self.typing = True
         self.write_anno = False
 
-    def _prevent_filename_overwrite(self) -> None:
-        """Sets next available filename to avoid overwrite at same timestamp."""
 
-        root, ext = os.path.splitext(self.filename) #get name and extension
-        num = 0
-        while os.path.exists(self.directory + self.filename):
-            num += 1
-            self.filename = f"{root}_{num}{ext}"
+class ScreenCapture(FilePath):
+    def __init__(self, directory: str) -> None:
+        super().__init__(directory)
+
+    def save_frame(self, frame: Any, timestamp_time: str) -> None:
+        self.filename = f"{timestamp_time.replace(':', '-')}.jpg"
+        self._prevent_filename_overwrite()
+        cv2.imwrite(self.filename, frame)
 
 
 class CoordinateManager():
@@ -337,6 +347,20 @@ def get_window_and_video_dims(cap: TVideoCapture) -> tuple[int, int, int, int]:
     return window_width, window_height, video_width, video_height
 
 
+def key_ascii(key: str) -> int:
+    """Get ASCII value of key (options_gui only allows printable chars + Esc).
+
+    Args:
+        key: key to get ASCII value of
+
+    Returns:
+        ASCII value of key
+    """
+
+    if key.lower() == 'esc': return 27
+    return ord(key)
+
+
 def main():
     
     args = arg_parsing()
@@ -357,22 +381,23 @@ def main():
 
     # Set up arguments for program use
     infile_path = prog_options.video_path.strip() #strip whitespace for MacOS
-    if prog_options.exit_key.lower() == 'esc':
-        exit_key = 27
-    else:
-        exit_key = ord(prog_options.exit_key)
-    clear_key = ord(prog_options.clear_key)
-    pause_key = ord(prog_options.pause_key)
+    exit_key = key_ascii(prog_options.exit_key)
+    clear_key = key_ascii(prog_options.clear_key)
+    pause_key = key_ascii(prog_options.pause_key)
+    screencap_key = key_ascii(prog_options.screencap_key)
+    note_key = key_ascii(prog_options.note_key)
     duration = prog_options.duration #duration on screen, in seconds
     font = types.SimpleNamespace(font=prog_options.font,
                                  scale=prog_options.font_scale,
                                  color=tuple(reversed(prog_options.font_color)),
                                  thickness=prog_options.font_thickness)
+    #screencaps_dir = prog_options.screencaps_dir
 
     # Instantiate classes
-    #coord = types.SimpleNamespace(xy=(), start_time=0)
     coord = CoordinateManager(prog_options.three_d)
     anno = AnnotationManager(f"{prog_options.anno_dir}/{system_date_time}")
+    screencap = ScreenCapture(
+        f"{prog_options.screencaps_dir}/{system_date_time}")
     headers = ['Date', 'Time', 'Coordinates']
     sheet = SpreadSheet(prog_options.out_dir, system_date_time, headers)
 

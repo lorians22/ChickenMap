@@ -3,9 +3,12 @@
     "three_d": false,
     "out_dir": "sheets/",
     "anno_dir": "annotated_images/",
+    "screencaps_dir": "screencaps/",
     "exit_key": "q",
     "clear_key": "c",
     "pause_key": "p",
+    "screencap_key": "s",
+    "note_key": "n",
     "duration": 5.0,
     "font": 0,
     "font_color": [

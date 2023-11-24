@@ -304,7 +304,15 @@ Tested with:
 
 ## Privacy
 
-This program does not store or transmit any user data to an external source and can run without connection to the Internet. Your OS/platform (Windows, macOS) is determined at runtime to point `pytesseract` to the Tesseract-OCR executable on Windows for `chicken_map` and to determine the system theme (light or dark) for `options_gui`. Program errors and platform info (OS version, Python version, processor name) are stored in `error_log.txt` and are <u>not</u> transmitted for telemetry or error reporting; if you have errors, see [Support](#support).
+This program does not transmit any user data to an external source. Your OS/platform (Windows, macOS) is determined at runtime to point `pytesseract` to the Tesseract-OCR executable on Windows for `chicken_map` and to determine the system theme (light or dark) for `options_gui`. If the program encounters an error, the following non-identifying information is stored locally in `error_log.txt`:
+
+- Python version (e.g., 3.12)
+
+- OS version and build number (e.g., Windows 10.0.19045)
+
+- CPU architecture (AMD, Intel, etc.)
+
+This information is helpful for debugging purposes but is <u>not</u> transmitted for telemetry or error reporting automatically. See [Support](#support).
 
 ## Development
 
@@ -316,9 +324,9 @@ This program does not store or transmit any user data to an external source and 
 
 - [openpyxl](https://pypi.org/project/openpyxl/)
 
-- [Python-tesseract](https://pypi.org/project/pytesseract/)
-
 - [Pillow](https://pypi.org/project/Pillow/)
+
+- [Python-tesseract](https://pypi.org/project/pytesseract/)
 
 - [Sun Valley theme by rdbende](https://pypi.org/project/sv-ttk/)
 
@@ -334,7 +342,7 @@ This code attempts to follow [PEP 8](https://peps.python.org/pep-0008/) and the 
 
 ### Type Hints
 
-This code follows [PEP 484](https://peps.python.org/pep-0484/) + [PEP 604](https://peps.python.org/pep-0604/) for type hints (for function calls only) to lend some static typing to the program. [mypy](https://pypi.org/project/mypy/) was used for type checking. Please note that most of the type hint formatting follows conventions supported in Python 3.9+, and 3.10+ for union types.
+This code follows [PEP 484](https://peps.python.org/pep-0484/) + [PEP 604](https://peps.python.org/pep-0604/) for type hints (function calls only) to lend some static typing to the program. [mypy](https://pypi.org/project/mypy/) was used for type checking. Please note that most of the type hint formatting follows conventions supported in Python 3.9+, and 3.10+ for union types.
 
 ### Decisions (Nerd Questions)
 
@@ -357,6 +365,10 @@ This code follows [PEP 484](https://peps.python.org/pep-0484/) + [PEP 604](https
 **Q:** Why did you make certain files and folders hidden?
 
 **A:** If it's harder for the user to find, it's harder for the user to mess with.
+
+**Q:** Why did you just encapsulate most of `main()` in a try-except block?
+
+**A:** Laziness.
 
 ## Support
 
