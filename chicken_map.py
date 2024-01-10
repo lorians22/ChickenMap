@@ -1,14 +1,23 @@
 #!/usr/bin/python3
 
-#TODO: follow google style guide docstrings (incorporate Usage)
-"""A coordinate mapping program made initially for chicken research"""
+"""A 3D coordinate mapping program for chicken research"""
 
 '''
-Copyright 2023, Logan Orians in affiliation with Purdue University:
-    Dr. Marisa Erasmus and Gideon Ajibola.
+Copyright (C) 2023  Logan Orians, in affiliation with Purdue University's
+Dr. Marisa Erasmus and Gideon Ajibola.
 
-Approved for private use by students and employees of Purdue University only.
-No implied support or warranty.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see https://www.gnu.org/licenses/.
 '''
 
 # Date: 07/13/23
@@ -20,13 +29,11 @@ No implied support or warranty.
 # MacOS:        python3 chicken_map.py
 
 # TODO:
-# 1) shift-left click to add a note to the spreadsheet - use flags in mouse_cb
-# 2) add more error loggers
-# 3) location-aware text drawing; how right-click menu flows up/down from cursor
-# 4) remove parentheses where unncessary (GPSG)
+# 1) add more error loggers
+# 2) location-aware text, like how right-click menu flows up/down from cursor
 
 
-__version__ = '2023.11.3'
+__version__ = '2023.12.1'
 __author__ = 'Logan Orians'
 
 
@@ -44,6 +51,7 @@ import types
 from typing import Any, TypeVar
 
 import cv2
+import numpy as np
 import openpyxl
 import pytesseract # type: ignore
 
@@ -52,6 +60,7 @@ import options_gui
 # Change working directory for .command executions
 os.chdir(os.path.dirname(__file__))
 
+# Custom Types for Type Checking (mypy)
 TVideoCapture = TypeVar('TVideoCapture', bound=cv2.VideoCapture)
 
 
@@ -151,33 +160,182 @@ class AnnotationManager(FilePath):
 class ScreenCapture(FilePath):
     def __init__(self, directory: str) -> None:
         super().__init__(directory)
+        self.captured= False
+        self.capture_time = 0.0
 
     def save_frame(self, frame: Any, timestamp_time: str) -> None:
+        self.captured = True
+        self.capture_time = time.time()
         self.filename = f"{timestamp_time.replace(':', '-')}.jpg"
-        self._prevent_filename_overwrite()
-        cv2.imwrite(self.filename, frame)
+        #self._prevent_filename_overwrite()
+        cv2.imwrite(str(self), frame)
 
 
 class CoordinateManager():
     def __init__(self, three_d: bool | str) -> None:
-        self._coord = () # type: tuple[int, ...]
+        self.coord = () # type: tuple[int, ...]
         self.start_time = 0.0
-        self._three_d = three_d
+        self.three_d = three_d
+        if self.three_d == 'Floor':
+            self.coord_3d = ()
 
-    @property
-    def coord(self) -> tuple[int, ...]:
-        return self._coord
-    
-    @coord.setter
-    def coord(self, x_and_y: tuple[int, ...]) -> None:
-        if self._three_d:
-            self._coord = self._get_3d_from_2d(*x_and_y)
-        else:
-            self._coord = x_and_y
+    def set_coord(self, x, y):
+        self.coord = (x, y)
+        if self.three_d == 'Floor':
+            self.coord_3d = self._get_3d_from_floor(x, y)
 
     @staticmethod
-    def _get_3d_from_2d(x, y) -> tuple[int, int]:
-        return (x, y)
+    def _get_3d_from_floor(x, y) -> tuple[int, int, int]:
+        #camera view:
+        # length: 10.54m
+        # height: 2.57m (end), 2.38m (middle), 2.07m (close)
+        #actual:
+        # length: 12.1m
+        # height: 2.2m
+        # width minus nesting boxes: 3.04m
+        # nesting boxes: 0.51m
+
+        #real-world measurements, in meters
+        x_meas = 3.04 #total floor width without nesting boxes
+        y_meas = 10.54 #total floor length without nesting boxes
+        nesting_boxes = 0.51
+
+        #floor bounding box coords, in pixels
+        # [1185, 200]  [1480, 185]  [2475, 1520]  [1030, 1520]
+        #floor bounding box, in pixels
+        floor_bb_x_min = 1030
+        floor_bb_x_max = 2475
+        floor_bb_y_min = 200
+        floor_bb_y_max = 1520
+
+        #nesting boxes bounding box coords, in pixels
+        # [1030, 130]  [0, 1520]  [1030, 1520]  [1185, 200]
+        nb_bb_x_min = 0
+        nb_bb_x_max = 1185
+        nb_bb_y_min = 130
+        nb_bb_y_max = 1520
+
+        #single roost bounding box, in pixels
+        # [1650, 480]  [1820, 465]  [2470, 1050]  [2060, 1310]
+        sr_bb_x_min = 1650
+        sr_bb_x_max = 2470
+        sr_bb_y_min = 465
+        sr_bb_y_max = 1310
+
+        #double roost bounding box, in pixels
+        # [1360, 100]  [1480, 80]  [1780, 390]  [1625, 410]
+        dr_bb_x_min = 1360
+        dr_bb_x_max = 1780
+        dr_bb_y_min = 80
+        dr_bb_y_max = 410
+
+        #polygon ROI - floor
+        vertices_floor = np.array([[1185, 200], [1480, 185],
+                                   [2475, 1520], [1030, 1520]], np.int32)
+        mask_floor = np.zeros((1520, 2688), dtype=np.uint8)
+        cv2.fillPoly(mask_floor, [vertices_floor], 255)
+
+        #polygon ROI - nesting boxes
+        vertices_nb = np.array([[1030, 130], [0, 1520],
+                             [1030, 1520], [1185, 200]], np.int32)
+        mask_nb = np.zeros((1520, 2688), dtype=np.uint8)
+        cv2.fillPoly(mask_nb, [vertices_nb], 255)
+
+        #polygon ROI - single roost
+        vertices_sr = np.array([[1650, 480], [1820, 465],
+                                [2470, 1050], [2060, 1310]], np.int32)
+        mask_sr = np.zeros((1520, 2688), dtype=np.uint8)
+        cv2.fillPoly(mask_sr, [vertices_sr], 255)
+
+        #polygon ROI - double roost
+        vertices_dr = np.array([[1360, 100], [1480, 80],
+                                [1780, 390], [1625, 410]], np.int32)
+        mask_dr = np.zeros((1520, 2688), dtype=np.uint8)
+        cv2.fillPoly(mask_dr, [vertices_dr], 255)
+
+
+        if mask_floor[y, x] == 255: #floor
+            floor_bb_x = floor_bb_x_max - floor_bb_x_min
+            floor_bb_y = floor_bb_y_max - floor_bb_y_min
+
+            #scaling factor
+            x_scale = x_meas / floor_bb_x
+            y_scale = y_meas / floor_bb_y
+
+            #normalization
+            matrix = np.load('.3D_matrices/floor_matrix.npy')
+            pixel_coord = np.array([x, y, 1])
+            trans_pixel = matrix.dot(pixel_coord)
+            trans_pixel /= trans_pixel[2]
+
+            #scaling
+            real_x = trans_pixel[0] * x_scale + nesting_boxes
+            real_y = trans_pixel[1] * y_scale
+            est_z = 0.2 #a chicken is a solid 40 cm tall, so halve that?
+
+        elif mask_nb[y, x] == 255: #nesting boxes
+            nb_bb_x = nb_bb_x_max - nb_bb_x_min
+            nb_bb_y = nb_bb_y_max - nb_bb_y_min
+
+            #scaling factor
+            x_scale = nesting_boxes / nb_bb_x
+            y_scale = y_meas / nb_bb_y
+
+            #normalization
+            matrix = np.load('.3D_matrices/nb_matrix.npy')
+            pixel_coord = np.array([x, y, 1])
+            trans_pixel = matrix.dot(pixel_coord)
+            trans_pixel /= trans_pixel[2]
+
+            #scaling
+            real_x = trans_pixel[0] * x_scale
+            real_y = trans_pixel[1] * y_scale
+            est_z = 0.2 #a chicken is a solid 40 cm tall, so halve that?
+
+        elif mask_sr[y, x] == 255: #single roost
+            sr_bb_x = sr_bb_x_max - sr_bb_x_min
+            sr_bb_y = sr_bb_y_max - sr_bb_y_min
+
+            #scaling factor
+            x_scale = 1 / sr_bb_x
+            y_scale = 3.54 / sr_bb_y
+
+            #normalization
+            matrix = np.load('.3D_matrices/sr_matrix.npy')
+            pixel_coord = np.array([x, y, 1])
+            trans_pixel = matrix.dot(pixel_coord)
+            trans_pixel /= trans_pixel[2]
+
+            #scaling
+            real_x = trans_pixel[0] * x_scale + nesting_boxes + 2
+            real_y = trans_pixel[1] * y_scale + 7
+            est_z = 0.4
+
+        elif mask_dr[y, x] == 255: #double roost
+            dr_bb_x = dr_bb_x_max - dr_bb_x_min
+            dr_bb_y = dr_bb_y_max - dr_bb_y_min
+
+            #scaling factor
+            x_scale = 1 / dr_bb_x
+            y_scale = 6.5 / dr_bb_y
+
+            #normalization
+            matrix = np.load('.3D_matrices/dr_matrix.npy')
+            pixel_coord = np.array([x, y, 1])
+            trans_pixel = matrix.dot(pixel_coord)
+            trans_pixel /= trans_pixel[2]
+
+            #scaling
+            real_x = trans_pixel[0] * x_scale + nesting_boxes + 2
+            real_y = trans_pixel[1] * y_scale
+            est_z = 0.6
+
+        else: #outside of my predefined boxes -> probably a wall or something
+            real_x = -1
+            real_y = -1
+            est_z = -1
+
+        return real_x, real_y, est_z
 
 
 def mouse_input(
@@ -199,10 +357,19 @@ def mouse_input(
     if not anno.typing: #if user isn't typing annotation
         if event == cv2.EVENT_LBUTTONDOWN: #left mouse click
             coord.start_time = time.time()
-            coord.coord = (x, y)
+            coord.set_coord(x, y)
             timestamp_date, timestamp_time = get_timestamp(anno.frame)
 
-            data = [timestamp_date, timestamp_time, f"({x}, {y})"] #format data
+            # Format data
+            if coord.three_d == 'Floor':
+                new_x, new_y, new_z = coord.coord_3d
+                if new_x == -1:
+                    data = [timestamp_date,timestamp_time, f"({x}, {y})", '( )']
+                else:    
+                    data = [timestamp_date, timestamp_time, f"({x}, {y})",
+                            f"({new_x:.2f}, {new_y:.2f}, {new_z:.2f})"]
+            else:
+                data = [timestamp_date, timestamp_time, f"({x}, {y})"]
             sheet.append_to_spreadsheet(data)
 
             # Print timestamp and coordinates in case .xlsx gets corrupted
@@ -385,20 +552,21 @@ def main():
     clear_key = key_ascii(prog_options.clear_key)
     pause_key = key_ascii(prog_options.pause_key)
     screencap_key = key_ascii(prog_options.screencap_key)
-    note_key = key_ascii(prog_options.note_key)
     duration = prog_options.duration #duration on screen, in seconds
     font = types.SimpleNamespace(font=prog_options.font,
                                  scale=prog_options.font_scale,
                                  color=tuple(reversed(prog_options.font_color)),
                                  thickness=prog_options.font_thickness)
-    #screencaps_dir = prog_options.screencaps_dir
 
     # Instantiate classes
     coord = CoordinateManager(prog_options.three_d)
     anno = AnnotationManager(f"{prog_options.anno_dir}/{system_date_time}")
     screencap = ScreenCapture(
         f"{prog_options.screencaps_dir}/{system_date_time}")
-    headers = ['Date', 'Time', 'Coordinates']
+    if coord.three_d == 'Floor':
+        headers = ['Date', 'Time', 'Coordinates', '3D Coordinates']
+    else:
+        headers = ['Date', 'Time', 'Coordinates']
     sheet = SpreadSheet(prog_options.out_dir, system_date_time, headers)
 
     # Determine delay to play video at normal speed
@@ -407,6 +575,10 @@ def main():
     if fps == 0:
         fps = 25 #set default if determination fails
     delay = int(1000 / fps) #calculate delay from fps, in ms
+    '''
+    Note about delay: It's about 20% slower than real time...even though
+    this 100% should work. Might have a possible fix in the works.
+    '''
 
     # Set up video window
     w_width, w_height, v_width, v_height = get_window_and_video_dims(cap)
@@ -421,9 +593,14 @@ def main():
 
     try:
         while cap.isOpened():
+            #frame_start_time = time.time()
+
             if not paused:
                 ret, anno.frame = cap.read() #get cap frame-by-frame
                 if not ret: break
+
+            #timing while True here, everything else gets indented?
+            #might need to rework pause
                 
                 # Get LSByte of keypress for cross-platform compatibility
                 key_press = cv2.waitKey(delay) & 0xFF
@@ -437,9 +614,19 @@ def main():
                         anno.show_anno = False
                         anno.anno_text = ''
 
+                if not screencap.captured:
+                    if key_press == screencap_key:
+                        screencap.save_frame(anno.frame,
+                                             get_timestamp(anno.frame)[1])
+                if screencap.captured:
+                    cv2.putText(anno.frame, 'Screencap saved!', (500, 500),
+                                font.font, font.scale,
+                                font.color, font.thickness)
+                    if time.time() - screencap.capture_time > 1.15:
+                        screencap.captured = False
+
             # Prevent coords from popping back up after annotation is entered
-            if anno.typing:
-                coord.coord = ()
+            if anno.typing: coord.coord = ()
 
             # Only allow deletion of [date, time, coord] when on screen
             if coord.coord:
@@ -450,11 +637,11 @@ def main():
                 elif (time.time() - coord.start_time < duration): #coord timeout
                     if paused:
                         cv2.putText(frame_copy, str(coord.coord),
-                                    coord.coord[:2], font.font, font.scale,
+                                    coord.coord, font.font, font.scale,
                                     font.color, font.thickness)
                     else:
                         cv2.putText(anno.frame, str(coord.coord),
-                                    coord.coord[:2], font.font, font.scale,
+                                    coord.coord, font.font, font.scale,
                                     font.color, font.thickness)
 
             # This while loop ensures that the video is paused while annotating
@@ -496,6 +683,7 @@ def main():
 
             if not(paused and (coord.coord or anno.show_anno)):
                 cv2.imshow(window_name, anno.frame) #show video frame
+
 
     except Exception as e:
         logger.error('\nError: %s\n', e, exc_info=True)

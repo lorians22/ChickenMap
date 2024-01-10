@@ -1,6 +1,8 @@
 annotated_images/
 sheets/
+screencaps/
 __pycache__/
 ascii_test.py
+floor_remap.py
 error_log.txt
 .pylintrc
