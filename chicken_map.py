@@ -28,13 +28,14 @@ along with this program. If not, see https://www.gnu.org/licenses/.
 # Windows:      py chicken_map.py
 # MacOS:        python3 chicken_map.py
 
+
+__version__ = '2023.12.2'
+__author__ = 'Logan Orians'
+
+
 # TODO:
 # 1) add more error loggers
 # 2) location-aware text, like how right-click menu flows up/down from cursor
-
-
-__version__ = '2023.12.1'
-__author__ = 'Logan Orians'
 
 
 import argparse
@@ -176,8 +177,7 @@ class CoordinateManager():
         self.coord = () # type: tuple[int, ...]
         self.start_time = 0.0
         self.three_d = three_d
-        if self.three_d == 'Floor':
-            self.coord_3d = ()
+        self.coord_3d = (-1.0, -1.0, -1.0)
 
     def set_coord(self, x, y):
         self.coord = (x, y)
@@ -185,7 +185,7 @@ class CoordinateManager():
             self.coord_3d = self._get_3d_from_floor(x, y)
 
     @staticmethod
-    def _get_3d_from_floor(x, y) -> tuple[int, int, int]:
+    def _get_3d_from_floor(x, y) -> tuple[float, float, float]:
         #camera view:
         # length: 10.54m
         # height: 2.57m (end), 2.38m (middle), 2.07m (close)
@@ -202,7 +202,6 @@ class CoordinateManager():
 
         #floor bounding box coords, in pixels
         # [1185, 200]  [1480, 185]  [2475, 1520]  [1030, 1520]
-        #floor bounding box, in pixels
         floor_bb_x_min = 1030
         floor_bb_x_max = 2475
         floor_bb_y_min = 200
@@ -331,9 +330,9 @@ class CoordinateManager():
             est_z = 0.6
 
         else: #outside of my predefined boxes -> probably a wall or something
-            real_x = -1
-            real_y = -1
-            est_z = -1
+            real_x = -1.0
+            real_y = -1.0
+            est_z = -1.0
 
         return real_x, real_y, est_z
 
@@ -363,7 +362,7 @@ def mouse_input(
             # Format data
             if coord.three_d == 'Floor':
                 new_x, new_y, new_z = coord.coord_3d
-                if new_x == -1:
+                if coord.coord_3d[0] == -1:
                     data = [timestamp_date,timestamp_time, f"({x}, {y})", '( )']
                 else:    
                     data = [timestamp_date, timestamp_time, f"({x}, {y})",

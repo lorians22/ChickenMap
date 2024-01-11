@@ -2,6 +2,7 @@ annotated_images/
 sheets/
 screencaps/
 __pycache__/
+.mypy_cache/
 ascii_test.py
 floor_remap.py
 error_log.txt

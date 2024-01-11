@@ -1,6 +1,6 @@
 {
     "video_path": "test.mp4",
-    "three_d": false,
+    "three_d": "Floor",
     "out_dir": "sheets/",
     "anno_dir": "annotated_images/",
     "screencaps_dir": "screencaps/",
