@@ -23,11 +23,13 @@ along with this program. If not, see https://www.gnu.org/licenses/.
 # Date: 10/13/2023
 
 # requirements: pip3 install -r requirements.txt
-# Windows: py options_gui.py
-# MacOS: python3 options_gui.py
+
+# Run Program
+# Windows:      py options_gui.py
+# MacOS:        python3 options_gui.py
 
 
-__version__ = '2023.12.1'
+__version__ = '2023.12.2'
 __author__ = 'Logan Orians'
 
 

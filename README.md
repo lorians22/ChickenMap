@@ -2,34 +2,7 @@
 
 A coordinate mapping program for monitoring the location of chickens.
 
-Version 2023.12.1
-
-<details>
-    <summary style="font-size:30px">**Table of Contents**</summary>
-    - [Command Line Knowledge](#command-line-knowledge)
-        - [Windows](#windows)
-        - [macOS](#macos)
-    - [macOS Gatekeeper Override](#macos-gatekeeper-override)
-    - [Short Installation Instructions](#short-installation-instructions)
-    - [Prerequisites](#prerequisites)
-        - [Windows](#windows-1)
-        - [macOS](#macos-1)
-    - [Required Packages](#required-packages)
-    - [How to Use](#how-to-use)
-        - [chicken_map Instructions](#chicken_map-instructions)
-    - [Usage](#usage)
-        - [options_gui](#options_gui)
-    - [Compatibility](#compatibility)
-    - [Privacy](#privacy)
-    - [Development](#development)
-        - [Third-Party Resources](#third-party-resources)
-        - [Tools Used](#tools-used)
-        - [Style and Formatting](#style-and-formatting)
-        - [Type Hints](#type-hints)
-        - [Nerd Questions](#nerd-questions)
-    - [Support](#support)
-    - [License](#license)
-</details>
+Version 2023.12.2
 
 ## Command Line Knowledge
 
@@ -61,7 +34,7 @@ Version 2023.12.1
 
 For macOS users, running `.command` files downloaded from the Internet will likely trigger the [Gatekeeper](https://support.apple.com/guide/security/gatekeeper-and-runtime-protection-sec5599b66df/web) and won't let you run the command.
 
-<img title="" src=".readme_imgs/gatekeeper_first_open.png" alt="" width="236" data-align="center">
+<img title="" src=".readme_imgs/gatekeeper_first_open.png" alt="" width="269" data-align="center">
 
 This happens because I am unable to digitally sign the software without a certificate from a Certificate Authority, and this can be an annoyingly lengthy and <u>not free</u> process. Anyway, [Apple provides an override tutorial](https://support.apple.com/en-us/HT202491#openanyway). Basically:
 
@@ -69,13 +42,13 @@ This happens because I am unable to digitally sign the software without a certif
 
 - Nagivate to Privacy & Security/Security & Privacy, then click Open Anyway.
   
-  | MacOS 12                                                                      | MacOS 13 |
-  |:-----------------------------------------------------------------------------:| -------- |
-  | <img src=".readme_imgs/security_and_privacy.png" title="" alt="" width="252"> |          |
+  | macOS 12                                                                                          | macOS 13                                                                                             |
+  |:-------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------:|
+  | <img title="" src=".readme_imgs/security_and_privacy.png" alt="" width="336" data-align="inline"> | <img title="" src=".readme_imgs/security_and_privacy_13.png" alt="" width="336" data-align="inline"> |
 
 - Click Open.
   
-  <img title="" src=".readme_imgs/open_anyway.png" alt="" width="205" data-align="center">
+  <img title="" src=".readme_imgs/open_anyway.png" alt="" width="290" data-align="center">
 
 ## Short Installation Instructions
 
@@ -103,13 +76,15 @@ Please continue with the sections below for full instructions.
 
 - Tesseract 5.x (tested with 5.3.2).
   
-  - First, install [Homebrew](https://brew.sh/) by downloading and running the `.pkg` [here](https://github.com/Homebrew/brew/releases/download/4.2.3/Homebrew-4.2.3.pkg). If you already have Homebrew installed and configured, you can skip to the last step: install Tesseract.
+  - First, install [Homebrew](https://brew.sh/) by downloading and running the `.pkg` [here](https://github.com/Homebrew/brew/releases/latest). If you already have Homebrew installed and configured, you can skip to the last step: install Tesseract.![](.readme_imgs/brew_pkg_dl.png)
   
-  - **Important!** After installation, open a [Terminal](#macos) and enter (copy+paste) the two commands that brew lists under Next Steps. Image shown below for reference only; note that the first command may extend onto the second line, so be sure to copy it entirely. Then, fully close Terminal by pressing `Cmd` + `q`, or by right-clicking the Dock icon and selecting `Quit`. Just pressing the red traffic light button may not be enough to refresh Terminal.
+  - **Important!** After installation, open a [Terminal](#macos) and enter the command that brew lists under Next Steps. Basically, just type `brew shellenv` and press Enter, and your Terminal should look like the second image below.
+    
+    ![](.readme_imgs/brew_pkg_install.png)
     
     ![](.readme_imgs/brew_commands.png)
   
-  - Open a new [Terminal](#macos) and install Tesseract:
+  - Open a new [Terminal](#macos) and install Tesseract. If `brew` is not recognized as a command, you may need to fully close Terminal by pressing `Cmd` + `q`, or by right-clicking the Terminal icon in the dock and selecting `Quit`. Just pressing the red traffic light button may not be enough to refresh Terminal.
     
     ```bash
     brew install tesseract
@@ -139,7 +114,7 @@ Once the script finishes installing the packages, if you see "INSTALLATION COMPL
 
 ## How To Use
 
-Command line usage can be found under [Usage](#usage), but you shouldn't need to use a command prompt or Terminal anymore! To test things out, run the test video by double-clicking the `chicken_map.py` file. If this opens in a text editor instead of running the program, double-click `chicken_map_WIN.cmd` on Windows or `chicken_map_MAC.command` on macOS. macOS users will likely encounter a security warning; bypass this by following [these instructions](#macos-gatekeeper-override).
+Command line usage can be found under [Usage](#usage), but you shouldn't need to use a command prompt or Terminal anymore! To test things out, double-click `chicken_map_WIN.cmd` on Windows or `chicken_map_MAC.command` on macOS. macOS users will likely encounter a security warning; bypass this by following [these instructions](#macos-gatekeeper-override).
 
 After testing out the program with the [instructions](#chicken-map-instructions) below, double-click the `options_gui.py` file to edit program options, including choosing the video file to be played. A detailed list of program options can be found [here](#options_gui). As before, if this opens in a text editor, double-click the `options_gui_WIN.cmd` file on Windows or `options_gui_MAC.command` file on macOS.
 
@@ -170,10 +145,14 @@ After testing out the program with the [instructions](#chicken-map-instructions)
     - Press `Backspace` just as you would normally to remove letters from the annotation.
     
     - Annotations will stay on screen for 5 seconds by default.
-
-- Press `s` to save a screencap of the current frame. A "Screencap saved!" message will appear in a set position on the screen. Screencaps are saved to the `screencaps/` folder, inside a folder named for the date and time that you ran the program.
   
   - Annotated images are saved as `.jpg` files in the `annotated_images/<timestamp>` directory, where `<timestamp>` is the system date/time when you ran the program. Filenames are based on the timestamp in the top-left corner of the video; annotations at the same timestamp are given a `_#` suffix to prevent overwriting.
+
+- Press `s` to save a screencap of the current frame.
+  
+  - A "Screencap saved!" message will appear in a set position on the screen.
+  
+  - Screencaps are saved to the `screencaps/` folder, inside a folder with name based on your system's date and time when the program started.
 
 ## Usage
 
@@ -343,4 +322,4 @@ For support, email me at [logan.orians@gmail.com](mailto:logan.orians@gmail.com)
 
 ## License
 
-GNU General Public License v3.0 ([GPLv3](COPYING)).
+GNU General Public License v3.0 ([GPLv3](COPYING))
