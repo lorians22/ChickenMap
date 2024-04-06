@@ -3,7 +3,7 @@
 """A GUI with font preview for entering options for chicken_map.py"""
 
 '''
-Copyright (C) 2023  Logan Orians, in affiliation with Purdue University's
+Copyright (C) 2023-24  Logan Orians, in affiliation with Purdue University's
 Dr. Marisa Erasmus and Gideon Ajibola.
 
 This program is free software: you can redistribute it and/or modify
@@ -29,7 +29,7 @@ along with this program. If not, see https://www.gnu.org/licenses/.
 # MacOS:        python3 options_gui.py
 
 
-__version__ = '2023.12.2'
+__version__ = '2024.4.1'
 __author__ = 'Logan Orians'
 
 
@@ -71,6 +71,129 @@ TStringVar = TypeVar('TStringVar', bound=tk.StringVar)
 TBooleanVar = TypeVar('TBooleanVar', bound=tk.BooleanVar)
 
 
+class QuadViewer:
+    def __init__(self, root, video_file, quads_file, frame_skip) -> None:
+        self.cap = cv2.VideoCapture(video_file)
+        self.cap.set(cv2.CAP_PROP_POS_FRAMES, frame_skip)
+
+        self.quads_file = quads_file
+        self.quads_dict = get_args_from_file(quads_file)
+        self.quads = self.quads_dict['quads'] #get data from dict
+        self.colors = [(0, 255, 255), (255, 255, 0), (255, 0, 0), (255, 0, 255)]
+
+        # Set up window and corner coordinate label
+        self.root = tk.Toplevel(root)
+        self.canvas = tk.Canvas(self.root)
+        self.canvas.pack(fill=tk.BOTH, expand=True)
+        self.canvas.bind('<Button-1>', self._on_click) #left-click calls func
+        self.coords_label = ttk.Label(self.root, text='', font=('Arial', 14),
+                                      foreground='black', background='white')
+        self.label_spacing = 20
+
+        self._display_frame()
+        self.root.mainloop()
+
+    def _display_frame(self) -> None:
+        """Displays video frame for the first time."""
+
+        ret, frame = self.cap.read()
+        if ret:
+            self.original_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_with_quads = self._draw_quads(self.original_frame.copy())
+            img = Image.fromarray(frame_with_quads)
+            self.image = ImageTk.PhotoImage(image=img)
+            self.canvas.config(width=self.image.width(),
+                               height=self.image.height())
+            self.canvas.create_image(0, 0, anchor=tk.NW, image=self.image)
+
+    def _draw_quads(self, frame) -> np.ndarray:
+        """Draws quadrilaterals on screen.
+
+        Args:
+            frame: video frame copy to draw on
+
+        Returns:
+            frame_with_quads: video frame with quads drawn on
+        """
+
+        for i, quad in enumerate(self.quads):
+            pts = np.array(quad, np.int32).reshape((-1, 1, 2))
+            cv2.polylines(frame, [pts], isClosed=True,
+                          color=self.colors[i % len(self.colors)], thickness=2)
+            frame_with_quads = frame #functionally unnecessary, but GPSG
+
+        return frame_with_quads
+
+    def _on_click(self, event) -> None:
+        """Determines if corner of quadrilateral is clicked.
+
+        Args:
+            event: mouse input trigger
+        """
+        
+        tolerance = 10 #tolerance for corners of quadrilaterals, in pixels
+        x, y = event.x, event.y
+        self.coords_label.config(text=f'({x}), ({y})')
+        self.coords_label.place(x=x+self.label_spacing, y=y+self.label_spacing)
+        for quad in self.quads:
+            for point in quad:
+                px, py = point
+                if abs(x - px) < tolerance and abs(y - py) < tolerance:
+                    self.dragged_quad = quad
+                    self.dragged_point = point
+                    self.canvas.bind('<B1-Motion>', self._on_drag)
+                    self.canvas.bind('<ButtonRelease-1>', self._on_drag_release)
+                    return #corner clicked - break out early
+        self.canvas.bind('<ButtonRelease-1>', self._on_click_release)
+
+    def _on_click_release(self, event) -> None:
+        """Makes coord label disappear and unbinds mouse input; not dragging.
+
+        Args:
+            event: mouse input trigger
+        """
+
+        self.coords_label.place_forget()
+        self.canvas.unbind('<ButtonRelease-1>') #unnecessary, but good practice
+
+    def _on_drag(self, event) -> None:
+        """Updates corners of quadrilateral based on left-click dragging.
+
+        Args:
+            event: mouse input trigger
+        """
+        
+        x, y = event.x, event.y
+        self.coords_label.config(text=f'({x}), ({y})')
+        self.coords_label.place(x=x+self.label_spacing, y=y+self.label_spacing)
+        self.dragged_point[0], self.dragged_point[1] = x, y #update corners
+        self._update_image()
+
+    def _on_drag_release(self, event) -> None:
+        """Makes coord label disappear and unbinds mouse input; dragging.
+
+        Args:
+            event: mouse input trigger
+        """
+
+        # if input is not unbound, you can't drag another corner
+        # because it still thinks it's on the initial quad
+        self.canvas.unbind('<B1-Motion>') #left-click dragging
+        self.canvas.unbind('<ButtonRelease-1>') #left-click
+        self.coords_label.place_forget() #make label disappear
+        self._update_image()
+        write_args_to_file(self.quads_dict, self.quads_file)
+        # ^defined outside class
+
+    def _update_image(self):
+        """Draws image with new corners on screen."""
+
+        frame_with_quads = self._draw_quads(self.original_frame.copy())
+        img = Image.fromarray(frame_with_quads)
+        self.image = ImageTk.PhotoImage(image=img)
+        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.image)
+
+
 def get_args_from_file(filename: str) -> dict[str, Any]:
     """Gets program options from file.
 
@@ -101,7 +224,7 @@ def write_args_to_file(args: dict[str, Any], filename: str) -> None:
 
     Args:
         args: arguments to be written to file
-        filename: .txt file for writing
+        filename: file for writing
     """
 
     try:
@@ -115,6 +238,112 @@ def write_args_to_file(args: dict[str, Any], filename: str) -> None:
     except (PermissionError, OSError) as e:
         print(f'Error accessing file; please contact author: {e}')
         raise
+
+
+def convert_font_name_to_int(font_name: str) -> int:
+    """Maps the font_name to an integer for main program use.
+
+    Args:
+        font_name: name of cv2 font
+
+    Returns:
+        font_map[font_name]: integer mapped from cv2 font_name
+    """
+
+    font_map = {
+        'FONT_HERSHEY_SIMPLEX': 0,
+        'FONT_HERSHEY_PLAIN': 1,
+        'FONT_HERSHEY_DUPLEX': 2,
+        'FONT_HERSHEY_COMPLEX': 3,
+        'FONT_HERSHEY_TRIPLEX': 4,
+        'FONT_HERSHEY_COMPLEX_SMALL': 5,
+        'FONT_HERSHEY_SCRIPT_SIMPLEX': 6,
+        'FONT_HERSHEY_SCRIPT_COMPLEX': 7,
+    }
+
+    return font_map[font_name]
+
+
+def save_options(root: TRoot, option_vars: list[Any], label_ack: TLabel,
+                 err_msgs_left: dict[str, str],
+                 err_msgs_right: dict[str, str], options_file) -> None:
+    """Formats user entries for writing to file.
+
+    Args:
+        root: main Tk widget
+        option_vars: user entries from GUI
+        label_ack: GUI label for a successful save/file write
+        err_msgs_left: current and previous error messages
+    """
+
+    if err_msgs_left or err_msgs_right: return #if invalid input, don't submit
+
+    # Rename options for output
+    args = {} # type: dict[str, str | float | int | bool | tuple[int, int, int]]
+    args['video_path'] = option_vars[0].get()
+    if option_vars[1].get():
+        args['three_d'] = option_vars[2].get()
+    else: args['three_d'] = False
+    args['out_dir'] = option_vars[3].get()
+    args['anno_dir'] = option_vars[4].get()
+    args['screencaps_dir'] = option_vars[5].get()
+    args['exit_key'] = option_vars[6].get()
+    args['clear_key'] = option_vars[7].get()
+    args['pause_key'] = option_vars[8].get()
+    args['screencap_key'] = option_vars[9].get()
+    args['duration'] = float(option_vars[10].get())
+    args['font'] = convert_font_name_to_int(option_vars[11].get())
+    args['font_color'] = ast.literal_eval(option_vars[12].get())
+    args['font_scale'] = float(option_vars[13].get())
+    args['font_thickness'] = int(option_vars[14].get())
+    
+    write_args_to_file(args, options_file)
+    label_ack.config(text='Saved!')
+    root.after(2500, lambda: clear_label(label_ack)) #clear after 2.5 seconds
+
+
+def save_3d(options_file, loc_var) -> None:
+    """Updates only the 3D value in the options.
+
+    Args:
+        options_file: filepath containing GUI options
+        loc_var: 3D location variable
+    """
+
+    saved_args = get_args_from_file(options_file) #get latest saved options
+    if loc_var.get() != 'Floor':
+        saved_args['three_d'] = False
+    else:
+        saved_args['three_d'] = loc_var.get()
+    write_args_to_file(saved_args, options_file)
+
+
+
+def set_defaults(default_vars: list[Any], canvas: TCanvas) -> None:
+    """Callback function to populate input fields with default values.
+
+    Args:
+        default_vars: user entries from GUI
+        canvas: canvas to hold cv2 font preview image
+    """
+
+    default_vars[0].set('test.mp4') #input video file
+    default_vars[1].set(False)
+    default_vars[2].set('Floor')
+    default_vars[3].set('sheets/') #spreadsheets directory
+    default_vars[4].set('annotated_images/') #annotations directory
+    default_vars[5].set('screencaps/') #screencaps directory
+    default_vars[6].set('q') #exit key
+    default_vars[7].set('c') #clear key
+    default_vars[8].set('p') #pause key
+    default_vars[9].set('s') #screencap key
+    default_vars[10].set('5.0') #duration
+    default_vars[11].set('FONT_HERSHEY_SIMPLEX') #font
+    default_vars[12].set('(0, 255, 0)') #font color tuple, green
+    default_vars[13].set('1.0') #font scale
+    default_vars[14].set('2') #font thickness
+    
+    update_font_preview(default_vars[11:], canvas)
 
 
 def clear_error(name: str, err_msgs_left: dict[str, str], label_err: TLabel) -> None:
@@ -138,22 +367,6 @@ def clear_label(label: TLabel) -> None:
     """
 
     label.config(text='')
-
-
-def toggle_menu_state(check_var: TBooleanVar, menu: TOptionmenu,
-                      menu_var: TStringVar) -> None:
-    """Enables or resets menu based on checkbox.
-
-    Args:
-        check_var: checkbox variable
-        menu: drop-down menu widget
-        menu_var: variable holding current menu option
-    """
-
-    if check_var.get(): menu.config(state='normal')
-    else:
-        menu.config(state='disabled')
-        #menu_var.set('Select Chicken Location')
 
 
 def add_error(name: str, message: str, err_msgs_left: dict[str, str],
@@ -186,28 +399,24 @@ def update_error_label(err_msgs_left: dict[str, str], label_err: TLabel) -> None
     else: label_err.config(text='')
 
 
-def convert_font_name_to_int(font_name: str) -> int:
-    """Maps the font_name to an integer for main program use.
+def update_button_state(check_var: TBooleanVar, button: TOptionmenu,
+                        loc_var: TStringVar, options_file) -> None:
+    """Enables or disables button based on checkbox.
 
     Args:
-        font_name: name of cv2 font
-
-    Returns:
-        font_map[font_name]: integer mapped from cv2 font_name
+        check_var: checkbox variable
+        button: drop-down menu widget
+        loc_var: location variable for output
+        options_file: filepath containing GUI options
     """
 
-    font_map = {
-        'FONT_HERSHEY_SIMPLEX': 0,
-        'FONT_HERSHEY_PLAIN': 1,
-        'FONT_HERSHEY_DUPLEX': 2,
-        'FONT_HERSHEY_COMPLEX': 3,
-        'FONT_HERSHEY_TRIPLEX': 4,
-        'FONT_HERSHEY_COMPLEX_SMALL': 5,
-        'FONT_HERSHEY_SCRIPT_SIMPLEX': 6,
-        'FONT_HERSHEY_SCRIPT_COMPLEX': 7,
-    }
-
-    return font_map[font_name]
+    if check_var.get():
+        button.config(state='normal')
+        loc_var.set('Floor')
+    else:
+        button.config(state='disabled')
+        loc_var.set('')
+    save_3d(options_file, loc_var) #update value in .json
 
 
 def pick_file(file_var: TStringVar) -> None:
@@ -232,71 +441,6 @@ def pick_color(font_vars: list[TStringVar], canvas: TCanvas) -> None:
     if color != (None, None):
         font_vars[1].set(str(color[0]))
         update_font_preview(font_vars, canvas)
-
-
-def set_defaults(default_vars: list[Any], canvas: TCanvas) -> None:
-    """Callback function to populate input fields with default values.
-
-    Args:
-        default_vars: user entries from GUI
-        canvas: canvas to hold cv2 font preview image
-    """
-
-    default_vars[0].set('test.mp4') #input video file
-    default_vars[1].set(False)
-    default_vars[2].set('Floor')
-    default_vars[3].set('sheets/') #spreadsheets directory
-    default_vars[4].set('annotated_images/') #annotations directory
-    default_vars[5].set('screencaps/') #screencaps directory
-    default_vars[6].set('q') #exit key
-    default_vars[7].set('c') #clear key
-    default_vars[8].set('p') #pause key
-    default_vars[9].set('s') #screencap key
-    default_vars[10].set('5.0') #duration
-    default_vars[11].set('FONT_HERSHEY_SIMPLEX') #font
-    default_vars[12].set('(0, 255, 0)') #font color tuple, green
-    default_vars[13].set('1.0') #font scale
-    default_vars[14].set('2') #font thickness
-    
-    update_font_preview(default_vars[11:], canvas)
-
-
-def save_options(root: TRoot, option_vars: list[Any],
-                 label_ack: TLabel, err_msgs_left: dict[str, str],
-                 err_msgs_right: dict[str, str]) -> None:
-    """Formats user entries for writing to file.
-
-    Args:
-        root: main Tk widget
-        option_vars: user entries from GUI
-        label_ack: GUI label for a successful save/file write
-        err_msgs_left: current and previous error messages
-    """
-
-    if err_msgs_left or err_msgs_right: return #if invalid input, don't submit
-
-    # Rename options for output
-    args = {} # type: dict[str, str | float | int | bool | tuple[int, int, int]]
-    args['video_path'] = option_vars[0].get()
-    if option_vars[1].get():
-        args['three_d'] = option_vars[2].get()
-    else: args['three_d'] = False
-    args['out_dir'] = option_vars[3].get()
-    args['anno_dir'] = option_vars[4].get()
-    args['screencaps_dir'] = option_vars[5].get()
-    args['exit_key'] = option_vars[6].get()
-    args['clear_key'] = option_vars[7].get()
-    args['pause_key'] = option_vars[8].get()
-    args['screencap_key'] = option_vars[9].get()
-    args['duration'] = float(option_vars[10].get())
-    args['font'] = convert_font_name_to_int(option_vars[11].get())
-    args['font_color'] = ast.literal_eval(option_vars[12].get())
-    args['font_scale'] = float(option_vars[13].get())
-    args['font_thickness'] = int(option_vars[14].get())
-    
-    write_args_to_file(args, '.options.json')
-    label_ack.config(text='Saved!')
-    root.after(2500, lambda: clear_label(label_ack)) #clear after 2.5 seconds
 
 
 def update_font_preview(font_vars: list[TStringVar], canvas: TCanvas) -> None:
@@ -588,11 +732,22 @@ def main():
     err_msgs_left = {} #dict for on-GUI error messages for left half
     err_msgs_right = {} #dict for on-GUI error messages for right half
 
-    saved_args = get_args_from_file('.options.json')
+    options_file = '.options.json'
+    quads_file = '.quads.json'
+    saved_args = get_args_from_file(options_file)
+    video_file = saved_args['video_path']
+    frame_skip = 125 #skip ahead 125 frames (should be 5 seconds)
+    #quads = [
+    #    [[1185, 200], [1480, 185], [2475, 1520], [1030, 1520]], #floor
+    #    [[1030, 130], [0, 1520], [1030, 1520], [1185, 200]], #nesting boxes
+    #    [[1650, 480], [1820, 465], [2470, 1050], [2060, 1310]], #single roost
+    #    [[1360, 100], [1480, 80], [1780, 390], [1625, 410]] #double roost
+    #]
+    
 
     label_video = ttk.Label(frame, text='Input video file:', font=bold_font)
     label_video.grid(row=0, column=0, sticky='w', padx=bold_padx, pady=2)
-    video_var = tk.StringVar(value=saved_args['video_path'])
+    video_var = tk.StringVar(value=video_file)
     option_vars.append(video_var)
     video_entry = ttk.Entry(frame, textvariable=video_var, state='readonly',
                             width=width)
@@ -602,19 +757,25 @@ def main():
     video_button.grid(row=video_entry.grid_info()['row']+1, column=1, pady=3)
 
     var_3d = tk.BooleanVar()
+    if saved_args['three_d'] != False:
+        var_3d.set(True)
     option_vars.append(var_3d)
     #style='Switch.TCheckbutton'
-    checkbox_3d = ttk.Checkbutton(frame, text='3D?', variable=var_3d,
-                                  command=lambda *args: toggle_menu_state(
-                                      var_3d, menu_3d, var_location_3d))
+    checkbox_3d = ttk.Checkbutton(frame, text='Floor 3D?', variable=var_3d,
+                                  command=lambda *args: update_button_state(
+                                      var_3d, adj_button, var_location_3d,
+                                      options_file))
     checkbox_3d.grid(row=video_button.grid_info()['row']+1, column=0,
                      padx=(170,0), pady=2)
     var_location_3d = tk.StringVar()
     option_vars.append(var_location_3d)
-    options_3d = ['Floor']
-    menu_3d = ttk.OptionMenu(frame, var_location_3d, options_3d[0], *options_3d)
-    menu_3d.config(width=29, state='disabled')
-    menu_3d.grid(row=checkbox_3d.grid_info()['row'], column=1, pady=3)
+    adj_button = ttk.Button(frame, text='Adjust', width=7,
+                            command=lambda: QuadViewer(
+                            root, video_file, quads_file, frame_skip))
+    adj_button.grid(row=checkbox_3d.grid_info()['row'], column=1, pady=2)
+    update_button_state(var_3d, adj_button, var_location_3d, options_file)
+    
+
 
     label_out_folders = ttk.Label(frame, text='Output Folders', font=bold_font)
     label_out_folders.grid(row=checkbox_3d.grid_info()['row']+1, column=0,
@@ -845,7 +1006,7 @@ def main():
     save_button = ttk.Button(save_close_frame, text='Save',
                              command=lambda: save_options(
                                  root, option_vars, label_ack,
-                                 err_msgs_left, err_msgs_right))
+                                 err_msgs_left, err_msgs_right, options_file))
     save_button.grid(row=0, column=2, pady=(0, 6))
 
     # Close program button
