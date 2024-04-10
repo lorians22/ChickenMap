@@ -29,7 +29,7 @@ along with this program. If not, see https://www.gnu.org/licenses/.
 # MacOS:        python3 options_gui.py
 
 
-__version__ = '2024.4.1'
+__version__ = '2024.4.2'
 __author__ = 'Logan Orians'
 
 
@@ -78,7 +78,7 @@ class QuadViewer:
 
         self.quads_file = quads_file
         self.quads_dict = get_args_from_file(quads_file)
-        self.quads = self.quads_dict['quads'] #get data from dict
+        self.quads = np.array(self.quads_dict['quads'], np.float32) #get data from dict
         self.colors = [(0, 255, 255), (255, 255, 0), (255, 0, 0), (255, 0, 255)]
 
         # Set up window and corner coordinate label
@@ -167,6 +167,10 @@ class QuadViewer:
         self.coords_label.config(text=f'({x}), ({y})')
         self.coords_label.place(x=x+self.label_spacing, y=y+self.label_spacing)
         self.dragged_point[0], self.dragged_point[1] = x, y #update corners
+        #self.quads[self.quads.tolist().index(self.dragged_quad)] = self.quads
+        index_1d = np.where(self.quads == self.dragged_quad)[0][0] #"row"
+        index_2d = np.where(self.quads[3] == self.dragged_point)[0][0] #"column"
+        self.quads_dict['quads'][index_1d][index_2d] = self.dragged_point.astype(np.int32).tolist()
         self._update_image()
 
     def _on_drag_release(self, event) -> None:
@@ -183,8 +187,16 @@ class QuadViewer:
         self.coords_label.place_forget() #make label disappear
         self._update_image()
         write_args_to_file(self.quads_dict, self.quads_file)
-        # ^defined outside class
-
+        # ^defined outside class. don't like but it'll work
+        #I don't feel like making it know what quad changed, so I'm updating all
+        outfiles = ('.3D_matrices/adjusted_floor_matrix.npy',
+                    '.3D_matrices/adjusted_nb_matrix.npy',
+                    '.3D_matrices/adjusted_sr_matrix.npy',
+                    '.3D_matrices/adjusted_dr_matrix.npy'
+        )
+        for quad, outfile in zip(self.quads, outfiles):
+            self._remap_quad(quad, outfile)
+        
     def _update_image(self):
         """Draws image with new corners on screen."""
 
@@ -192,6 +204,22 @@ class QuadViewer:
         img = Image.fromarray(frame_with_quads)
         self.image = ImageTk.PhotoImage(image=img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.image)
+
+    def _remap_quad(self, source, outfile):
+        width = np.max(source[:, 0]) - np.min(source[:, 0]) #x_max - x_min
+        height = np.max(source[:, 1]) - np.min(source[:, 1]) #y_max - y_min
+        destination = np.array([[0, 0], [width, 0], [width, height],
+                                [0, height]], np.float32) #clockwise
+        matrix = cv2.getPerspectiveTransform(source, destination)
+
+        try:
+            np.save(outfile, matrix)
+        except OSError as e:
+            print('I/O error writing .npy file. Contact author')
+            print(e)
+        except Exception as e:
+            print('Unknown error writing .npy file. Contact author')
+            print(e)
 
 
 def get_args_from_file(filename: str) -> dict[str, Any]:

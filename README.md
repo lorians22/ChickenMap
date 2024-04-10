@@ -2,7 +2,7 @@
 
 A coordinate mapping program for monitoring the location of chickens.
 
-Version 2023.12.2
+Version 2024.4.2
 
 ## Command Line Knowledge
 
@@ -160,7 +160,7 @@ After testing out the program with the [instructions](#chicken-map-instructions)
 chicken_map.py [-h] [-o]
 ```
 
-You can set program options via a GUI with:
+You can set some program options via a GUI with:
 
 ```bash
 chicken_map.py -o
@@ -201,6 +201,12 @@ Change the options as you see fit. There is a font preview at the bottom to show
 **Font scale**: how big the font is
 
 **Font thickness**: how thick the font is
+
+#### Adjust
+
+Press this button to manually adjust the bounding boxes for 3D coordinate calculation. With the left mouse button, simply drag the corner of the box you want to adjust, and the behind-the-scenes calculations will be completed when you let go of the corner.
+
+![3D bounding box visualization](.readme_imgs/adjust_3d.png)
 
 ## Compatibility
 

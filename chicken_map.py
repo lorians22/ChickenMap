@@ -29,7 +29,7 @@ along with this program. If not, see https://www.gnu.org/licenses/.
 # MacOS:        python3 chicken_map.py
 
 
-__version__ = '2024.4.1'
+__version__ = '2024.4.2'
 __author__ = 'Logan Orians'
 
 
@@ -173,19 +173,24 @@ class ScreenCapture(FilePath):
 
 
 class CoordinateManager():
-    def __init__(self, three_d: bool | str) -> None:
+    def __init__(self, three_d: bool | str, quads: bool | np.ndarray) -> None:
         self.coord = () # type: tuple[int, ...]
         self.start_time = 0.0
         self.three_d = three_d
         self.coord_3d = (-1.0, -1.0, -1.0)
+        self.quads = quads
+        self.adjusted_3d = (-1.0, -1.0, -1.0)
 
     def set_coord(self, x, y):
         self.coord = (x, y)
         if self.three_d == 'Floor':
-            self.coord_3d = self._get_3d_from_floor(x, y)
+            self.coord_3d = self._get_3d_from_2d(x, y)
+        if self.quads != False:
+            self.adjusted_3d = self._get_3d_from_2d(x, y, self.quads)
+
 
     @staticmethod
-    def _get_3d_from_floor(x, y) -> tuple[float, float, float]:
+    def _get_3d_from_2d(x, y, quads=None) -> tuple[float, float, float]:
         #camera view:
         # length: 10.54m
         # height: 2.57m (end), 2.38m (middle), 2.07m (close)
@@ -200,99 +205,82 @@ class CoordinateManager():
         y_meas = 10.54 #total floor length without nesting boxes
         nesting_boxes = 0.51
 
-        '''
-        #OLD
-        #floor bounding box coords, in pixels
-        # [1185, 200]  [1480, 185]  [2475, 1520]  [1030, 1520]
-        floor_bb_x_min = 1030
-        floor_bb_x_max = 2475
-        floor_bb_y_min = 200
-        floor_bb_y_max = 1520
+        
 
-        #nesting boxes bounding box coords, in pixels
-        # [1030, 130]  [0, 1520]  [1030, 1520]  [1185, 200]
-        nb_bb_x_min = 0
-        nb_bb_x_max = 1185
-        nb_bb_y_min = 130
-        nb_bb_y_max = 1520
+        if quads is not None:
+            quads = np.array(quads, np.int32) #convert to ndarray for operations
+            x_vals = quads[:, :, 0] #get x values of each corner of each quad
+            y_vals = quads[:, :, 1] #get y values of each corner of each quad
+            x_mins = np.min(x_vals, axis=1)
+            x_maxes = np.max(x_vals, axis=1)
+            y_mins = np.min(y_vals, axis=1)
+            y_maxes = np.max(y_vals, axis=1)
 
-        #single roost bounding box, in pixels
-        # [1650, 480]  [1820, 465]  [2470, 1050]  [2060, 1310]
-        sr_bb_x_min = 1650
-        sr_bb_x_max = 2470
-        sr_bb_y_min = 465
-        sr_bb_y_max = 1310
+            # Unpack quads to get corners
+            vertices_floor, vertices_nb, vertices_sr, vertices_dr = quads
 
-        #double roost bounding box, in pixels
-        # [1360, 100]  [1480, 80]  [1780, 390]  [1625, 410]
-        dr_bb_x_min = 1360
-        dr_bb_x_max = 1780
-        dr_bb_y_min = 80
-        dr_bb_y_max = 410
-        '''
+            # Unpack mins and maxes
+            floor_bb_x_min, nb_bb_x_min, sr_bb_x_min, dr_bb_x_min = x_mins
+            floor_bb_x_max, nb_bb_x_max, sr_bb_x_max, dr_bb_x_max = x_maxes
+            floor_bb_y_min, nb_bb_y_min, sr_bb_y_min, dr_bb_y_min = y_mins
+            floor_bb_y_max, nb_bb_y_max, sr_bb_y_max, dr_bb_y_max = y_maxes
 
-        #floor bounding box coords, in pixels
-        floor_bb_x_min = 1030
-        floor_bb_x_max = 2475
-        floor_bb_y_min = 104
-        floor_bb_y_max = 1520
+            # Load transformation matrices
+            matrix_dr = np.load('.3D_matrices/adjusted_dr_matrix.npy')
+            matrix_floor = np.load('.3D_matrices/adjusted_floor_matrix.npy')
+            matrix_nb = np.load('.3D_matrices/adjusted_nb_matrix.npy')
+            matrix_sr = np.load('.3D_matrices/adjusted_sr_matrix.npy')
 
-        #nesting boxes bounding box coords, in pixels
-        nb_bb_x_min = 0
-        nb_bb_x_max = 1185
-        nb_bb_y_min = 125
-        nb_bb_y_max = 1520
+        else:
+            vertices_floor = np.array([[1184, 104], [1394, 123],
+                                   [2475, 1520], [1030, 1520]], np.int32)
+            vertices_nb = np.array([[1049, 125], [1185, 200],
+                                [1030, 1520], [0, 1520]], np.int32)
+            vertices_sr = np.array([[1597, 496], [1820, 448],
+                                [2469, 1158], [2015, 1337]], np.int32)
+            vertices_dr = np.array([[1250, 55], [1443, 32],
+                                [1830, 365], [1511, 448]], np.int32)
 
-        #single roost bounding box, in pixels
-        sr_bb_x_min = 1597
-        sr_bb_x_max = 2469
-        sr_bb_y_min = 448
-        sr_bb_y_max = 1337
+            #floor bounding box mins/maxes, in pixels
+            floor_bb_x_min = 1030
+            floor_bb_x_max = 2475
+            floor_bb_y_min = 104
+            floor_bb_y_max = 1520
+            #nesting boxes bounding box mins/maxes, in pixels
+            nb_bb_x_min = 0
+            nb_bb_x_max = 1185
+            nb_bb_y_min = 125
+            nb_bb_y_max = 1520
+            #single roost bounding box mins/maxes, in pixels
+            sr_bb_x_min = 1597
+            sr_bb_x_max = 2469
+            sr_bb_y_min = 448
+            sr_bb_y_max = 1337
+            #double roost bounding box mins/maxes, in pixels
+            dr_bb_x_min = 1250
+            dr_bb_x_max = 1830
+            dr_bb_y_min = 32
+            dr_bb_y_max = 448
 
-        #double roost bounding box, in pixels
-        dr_bb_x_min = 1250
-        dr_bb_x_max = 1830
-        dr_bb_y_min = 32
-        dr_bb_y_max = 448
+            matrix_dr = np.load('.3D_matrices/dr_matrix.npy')
+            matrix_floor = np.load('.3D_matrices/floor_matrix.npy')
+            matrix_nb = np.load('.3D_matrices/nb_matrix.npy')
+            matrix_sr = np.load('.3D_matrices/sr_matrix.npy')
 
         #polygon ROI - floor
-        #OLD
-        #vertices_floor = np.array([[1185, 200], [1480, 185],
-        #                           [2475, 1520], [1030, 1520]], np.int32)
-        mask_floor = np.zeros((1520, 2688), dtype=np.uint8)
-        vertices_floor = np.array([[1184, 104], [1394, 123],
-                                   [2475, 1520], [1030, 1520]], np.int32)
+        mask_floor = np.zeros((1520, 2688), dtype=np.uint8) #max val is 255
         cv2.fillPoly(mask_floor, [vertices_floor], 255)
-
         #polygon ROI - nesting boxes
-        #OLD
-        #vertices_nb = np.array([[1030, 130], [0, 1520],
-        #                        [1030, 1520], [1185, 200]], np.int32)
-        mask_nb = np.zeros((1520, 2688), dtype=np.uint8)
-        vertices_nb = np.array([[1049, 125], [0, 1520],
-                                [1030, 1520], [1185, 200]], np.int32)
+        mask_nb = np.zeros((1520, 2688), dtype=np.uint8) #max val is 255
         cv2.fillPoly(mask_nb, [vertices_nb], 255)
-
         #polygon ROI - single roost
-        #OLD
-        #vertices_sr = np.array([[1650, 480], [1820, 465],
-        #                        [2470, 1050], [2060, 1310]], np.int32)
-        mask_sr = np.zeros((1520, 2688), dtype=np.uint8)
-        vertices_sr = np.array([[1597, 496], [1820, 448],
-                                [2469, 1158], [2015, 1337]], np.int32)
+        mask_sr = np.zeros((1520, 2688), dtype=np.uint8) #max val is 255
         cv2.fillPoly(mask_sr, [vertices_sr], 255)
-
         #polygon ROI - double roost
-        #OLD
-        #vertices_dr = np.array([[1360, 100], [1480, 80],
-        #                        [1780, 390], [1625, 410]], np.int32)
-        mask_dr = np.zeros((1520, 2688), dtype=np.uint8)
-        vertices_dr = np.array([[1250, 55], [1443, 32],
-                                [1830, 365], [1511, 448]], np.int32)
+        mask_dr = np.zeros((1520, 2688), dtype=np.uint8) #max val is 255
         cv2.fillPoly(mask_dr, [vertices_dr], 255)
 
-
-        # rear double roost now takes priority
+        # rear double roost now takes priority over floor
         if mask_dr[y, x] == 255: #double roost
             dr_bb_x = dr_bb_x_max - dr_bb_x_min
             dr_bb_y = dr_bb_y_max - dr_bb_y_min
@@ -302,15 +290,34 @@ class CoordinateManager():
             y_scale = 6.5 / dr_bb_y
 
             #normalization
-            matrix = np.load('.3D_matrices/dr_matrix.npy')
+            #matrix_dr = np.load('.3D_matrices/dr_matrix.npy')
             pixel_coord = np.array([x, y, 1])
-            trans_pixel = matrix.dot(pixel_coord)
+            trans_pixel = matrix_dr.dot(pixel_coord)
             trans_pixel /= trans_pixel[2]
 
             #scaling
             real_x = trans_pixel[0] * x_scale + nesting_boxes + 2
             real_y = trans_pixel[1] * y_scale
             est_z = 0.6
+
+        elif mask_floor[y, x] == 255: #floor
+            floor_bb_x = floor_bb_x_max - floor_bb_x_min
+            floor_bb_y = floor_bb_y_max - floor_bb_y_min
+
+            #scaling factor
+            x_scale = x_meas / floor_bb_x
+            y_scale = y_meas / floor_bb_y
+
+            #normalization
+            #matrix_floor = np.load('.3D_matrices/floor_matrix.npy')
+            pixel_coord = np.array([x, y, 1])
+            trans_pixel = matrix_floor.dot(pixel_coord)
+            trans_pixel /= trans_pixel[2]
+
+            #scaling
+            real_x = trans_pixel[0] * x_scale + nesting_boxes
+            real_y = trans_pixel[1] * y_scale
+            est_z = 0.2 #a chicken is a solid 40 cm tall, so halve that?
 
         elif mask_nb[y, x] == 255: #nesting boxes
             nb_bb_x = nb_bb_x_max - nb_bb_x_min
@@ -321,9 +328,9 @@ class CoordinateManager():
             y_scale = y_meas / nb_bb_y
 
             #normalization
-            matrix = np.load('.3D_matrices/nb_matrix.npy')
+            #matrix_nb = np.load('.3D_matrices/nb_matrix.npy')
             pixel_coord = np.array([x, y, 1])
-            trans_pixel = matrix.dot(pixel_coord)
+            trans_pixel = matrix_nb.dot(pixel_coord)
             trans_pixel /= trans_pixel[2]
 
             #scaling
@@ -340,9 +347,9 @@ class CoordinateManager():
             y_scale = 3.54 / sr_bb_y
 
             #normalization
-            matrix = np.load('.3D_matrices/sr_matrix.npy')
+            #matrix_sr = np.load('.3D_matrices/sr_matrix.npy')
             pixel_coord = np.array([x, y, 1])
-            trans_pixel = matrix.dot(pixel_coord)
+            trans_pixel = matrix_sr.dot(pixel_coord)
             trans_pixel /= trans_pixel[2]
 
             #scaling
@@ -350,26 +357,7 @@ class CoordinateManager():
             real_y = trans_pixel[1] * y_scale + 7
             est_z = 0.4
 
-        elif mask_floor[y, x] == 255: #floor
-            floor_bb_x = floor_bb_x_max - floor_bb_x_min
-            floor_bb_y = floor_bb_y_max - floor_bb_y_min
-
-            #scaling factor
-            x_scale = x_meas / floor_bb_x
-            y_scale = y_meas / floor_bb_y
-
-            #normalization
-            matrix = np.load('.3D_matrices/floor_matrix.npy')
-            pixel_coord = np.array([x, y, 1])
-            trans_pixel = matrix.dot(pixel_coord)
-            trans_pixel /= trans_pixel[2]
-
-            #scaling
-            real_x = trans_pixel[0] * x_scale + nesting_boxes
-            real_y = trans_pixel[1] * y_scale
-            est_z = 0.2 #a chicken is a solid 40 cm tall, so halve that?
-
-        else: #outside of my predefined boxes -> probably a wall or something
+        else: #outside of predefined boxes -> probably a wall or something
             real_x = -1.0
             real_y = -1.0
             est_z = -1.0
@@ -402,8 +390,14 @@ def mouse_input(
             # Format data
             if coord.three_d == 'Floor':
                 new_x, new_y, new_z = coord.coord_3d
-                if coord.coord_3d[0] == -1:
-                    data = [timestamp_date,timestamp_time, f"({x}, {y})", '( )']
+                if coord.quads != False:
+                    adj_x, adj_y, adj_z = coord.adjusted_3d
+                    if coord.coord_3d[0] == -1:
+                        data = [timestamp_date,timestamp_time, f"({x}, {y})", '( )']
+                    else:
+                        data = [timestamp_date, timestamp_time, f"({x}, {y})",
+                            f"({new_x:.2f}, {new_y:.2f}, {new_z:.2f})",
+                            f"({adj_x:.2f}, {adj_y:.2f}, {adj_z:.2f})"]
                 else:    
                     data = [timestamp_date, timestamp_time, f"({x}, {y})",
                             f"({new_x:.2f}, {new_y:.2f}, {new_z:.2f})"]
@@ -568,7 +562,6 @@ def key_ascii(key: str) -> int:
 
 
 def main():
-    
     args = arg_parsing()
     if args.options:
         options_gui.main() #run GUI
@@ -593,6 +586,9 @@ def main():
         [[1250, 55], [1443, 32], [1830, 365], [1511, 448]]
     ]
 
+    if quads == default_quads:
+        quads = False
+
     # Set up arguments for program use
     infile_path = prog_options.video_path.strip() #strip whitespace for MacOS
     exit_key = key_ascii(prog_options.exit_key)
@@ -605,17 +601,16 @@ def main():
                                  color=tuple(reversed(prog_options.font_color)),
                                  thickness=prog_options.font_thickness)
 
-    # Instantiate classes
-    coord = CoordinateManager(prog_options.three_d)
+    # Instantiate classes and set up headers
+    coord = CoordinateManager(prog_options.three_d, quads)
+    headers = ['Date', 'Time', 'Coordinates']
+    if coord.three_d == 'Floor':
+        headers.append('3D Coordinates')
+        if quads != False: 
+            headers.append('Adjusted 3D')
     anno = AnnotationManager(f"{prog_options.anno_dir}/{system_date_time}")
     screencap = ScreenCapture(
         f"{prog_options.screencaps_dir}/{system_date_time}")
-    headers = ['Date', 'Time', 'Coordinates']
-    if coord.three_d == 'Floor':
-        if quads != default_quads:
-            headers.extend(('3D Coordinates', 'Adjusted 3D'))
-        else: headers.append('3D Coordinates')
-    else: headers = ['Date', 'Time', 'Coordinates']
     sheet = SpreadSheet(prog_options.out_dir, system_date_time, headers)
 
     # Determine delay to play video at normal speed
