@@ -79,7 +79,7 @@ class QuadViewer:
         self.quads_file = quads_file
         self.quads_dict = get_args_from_file(quads_file)
         self.quads = np.array(self.quads_dict['quads'], np.float32) #get data from dict
-        self.colors = [(0, 255, 255), (255, 255, 0), (255, 0, 0), (255, 0, 255)]
+        self.colors = [(255, 255, 0), (0, 255, 255), (255, 0, 0), (255, 0, 255)]
 
         # Set up window and corner coordinate label
         self.root = tk.Toplevel(root)
@@ -107,7 +107,7 @@ class QuadViewer:
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.image)
 
     def _draw_quads(self, frame) -> np.ndarray:
-        """Draws quadrilaterals on screen.
+        """Draws shaded quadrilaterals on screen.
 
         Args:
             frame: video frame copy to draw on
@@ -115,12 +115,28 @@ class QuadViewer:
         Returns:
             frame_with_quads: video frame with quads drawn on
         """
-
+        
+        overlay = frame.copy()
+        alpha = 0.35 #opacity
+        
+        # Draw quads without outlines
+        for color in self.colors:
+            for i, quad in enumerate(self.quads):
+                col = self.colors[i % len(self.colors)]
+                if col != color:
+                    continue
+                pts = np.array(quad, np.int32).reshape((-1, 1, 2))
+                cv2.fillPoly(overlay, [pts], col)
+                
+        # Shaded translucency
+        cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
+        
+        # Draw quad outlines
         for i, quad in enumerate(self.quads):
             pts = np.array(quad, np.int32).reshape((-1, 1, 2))
             cv2.polylines(frame, [pts], isClosed=True,
                           color=self.colors[i % len(self.colors)], thickness=2)
-            frame_with_quads = frame #functionally unnecessary, but GPSG
+        frame_with_quads = frame #functionally unnecessary, but GPSG
 
         return frame_with_quads
 
@@ -135,12 +151,15 @@ class QuadViewer:
         x, y = event.x, event.y
         self.coords_label.config(text=f'({x}), ({y})')
         self.coords_label.place(x=x+self.label_spacing, y=y+self.label_spacing)
-        for quad in self.quads:
-            for point in quad:
+        
+        for qi, quad in enumerate(self.quads):
+            for pi, point in enumerate(quad):
                 px, py = point
                 if abs(x - px) < tolerance and abs(y - py) < tolerance:
                     self.dragged_quad = quad
-                    self.dragged_point = point
+                    self.dragged_point = quad[pi]
+                    self.dragged_qi = qi
+                    self.dragged_pi = pi
                     self.canvas.bind('<B1-Motion>', self._on_drag)
                     self.canvas.bind('<ButtonRelease-1>', self._on_drag_release)
                     return #corner clicked - break out early
@@ -166,11 +185,9 @@ class QuadViewer:
         x, y = event.x, event.y
         self.coords_label.config(text=f'({x}), ({y})')
         self.coords_label.place(x=x+self.label_spacing, y=y+self.label_spacing)
-        self.dragged_point[0], self.dragged_point[1] = x, y #update corners
-        #self.quads[self.quads.tolist().index(self.dragged_quad)] = self.quads
-        index_1d = np.where(self.quads == self.dragged_quad)[0][0] #"row"
-        index_2d = np.where(self.quads[3] == self.dragged_point)[0][0] #"column"
-        self.quads_dict['quads'][index_1d][index_2d] = self.dragged_point.astype(np.int32).tolist()
+        self.quads[self.dragged_qi][self.dragged_pi][0] = x
+        self.quads[self.dragged_qi][self.dragged_pi][1] = y
+        self.quads_dict['quads'][self.dragged_qi][self.dragged_pi] = [x, y]
         self._update_image()
 
     def _on_drag_release(self, event) -> None:
