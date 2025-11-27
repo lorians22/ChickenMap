@@ -29,7 +29,7 @@ along with this program. If not, see https://www.gnu.org/licenses/.
 # MacOS:        python3 options_gui.py
 
 
-__version__ = '2024.4.2'
+__version__ = '2025.11.2'
 __author__ = 'Logan Orians'
 
 
